@@ -105,6 +105,16 @@ async function view<T>(contractId: string, method: string, args: Record<string, 
   return (await provider.callFunction<T & object>({ contractId, method, args })) as T;
 }
 
+/** Re-reads a view until `ready` accepts the result (RPC nodes can lag a moment behind a fresh transaction). */
+async function viewUntil<T>(contractId: string, method: string, args: Record<string, unknown>, ready: (v: T) => boolean, label: string): Promise<T> {
+  for (let i = 0; i < 15; i++) {
+    const v = await view<T>(contractId, method, args);
+    if (ready(v)) return v;
+    await sleep(1000);
+  }
+  throw new Error(`Timed out waiting for ${label}`);
+}
+
 async function exists(id: string): Promise<boolean> {
   try {
     await new Account(id, provider).getState();
@@ -261,6 +271,28 @@ async function round() {
   const lastPriceRaw = previous.find((r) => r.outcome?.price)?.outcome?.price ?? null;
   const lastPrice = lastPriceRaw === null ? null : BigInt(lastPriceRaw);
 
+  // Buyers decide before the round opens (they only need the last price), so slow model
+  // answers never eat into the join phase.
+  const notes: RoundNotes = { brain: brain.name, buyers: {}, sellers: {} };
+  console.log(`Agents deciding (${brain.name})…`);
+  const orders = (
+    await Promise.all(
+      s.buyers.map(async (b) => {
+        const balance = BigInt(await view<string>(s.token, 'ft_balance_of', { account_id: b.id }));
+        const need = Math.floor(rand(2, 9));
+        const valuePerUnit = usdc(rand(1.0, 1.9));
+        const budget = [balance, BigInt(need) * valuePerUnit].reduce((x, y) => (x < y ? x : y));
+        if (budget < 100_000n) {
+          console.log(`  ${short(b.id)} skips: balance ${formatUsdc(balance)} is too low`);
+          return null;
+        }
+        const d = await brain.buyer({ id: b.id, need, valuePerUnit, budget }, { lastPrice });
+        notes.buyers[b.id] = { reasoning: d.reasoning, source: d.source };
+        return { b, d };
+      }),
+    )
+  ).filter((x) => x !== null);
+
   console.log(`Opening a round on ${s.market.id} (${phase}s per phase, agents: ${brain.name})…`);
   const roundId = await p.callFunction<number>({
     contractId: s.market.id,
@@ -268,24 +300,14 @@ async function round() {
     args: { unit: '1M tokens', join_secs: phase, commit_secs: phase, reveal_secs: phase, seller_bond: BOND.toString() },
     gas: GAS,
   });
-  const r0 = await view<ContractRound>(s.market.id, 'get_round', { round_id: roundId });
+  const r0 = await viewUntil<ContractRound | null>(s.market.id, 'get_round', { round_id: roundId }, (r) => r !== null, `round ${roundId}`) as ContractRound;
   console.log(`Round ${roundId} open.`);
 
-  const notes: RoundNotes = { brain: brain.name, buyers: {}, sellers: {} };
 
-  // Join: each buyer decides (qty, max price) and locks qty × max price with ft_transfer_call.
+  // Join: each buyer locks qty × max price with ft_transfer_call. All buyers send at once.
+  let joinedCount = 0;
   await Promise.all(
-    s.buyers.map(async (b) => {
-      const balance = BigInt(await view<string>(s.token, 'ft_balance_of', { account_id: b.id }));
-      const need = Math.floor(rand(2, 9));
-      const valuePerUnit = usdc(rand(1.0, 1.9));
-      const budget = [balance, BigInt(need) * valuePerUnit].reduce((x, y) => (x < y ? x : y));
-      if (budget < 100_000n) {
-        console.log(`  ${short(b.id)} skips: balance ${formatUsdc(balance)} is too low`);
-        return;
-      }
-      const d = await brain.buyer({ id: b.id, need, valuePerUnit, budget }, { lastPrice });
-      notes.buyers[b.id] = { reasoning: d.reasoning, source: d.source };
+    orders.map(async ({ b, d }) => {
       const amount = BigInt(d.qty) * d.maxPrice;
       const res = await account(b.id, b.key).callFunctionRaw({
         contractId: s.token,
@@ -294,7 +316,7 @@ async function round() {
           receiver_id: s.market.id,
           amount: amount.toString(),
           // The buyer's reasoning is public anyway (joins are public), so it is recorded on-chain in the memo.
-          memo: d.reasoning.slice(0, 100),
+          memo: d.reasoning.slice(0, 120),
           msg: JSON.stringify({ round_id: roundId, qty: d.qty, max_price: d.maxPrice.toString() }),
         },
         deposit: 1n,
@@ -302,6 +324,7 @@ async function round() {
       });
       // ft_transfer_call returns the amount the coordinator kept; 0 means the join was rejected and refunded.
       const used = BigInt((getTransactionLastResult(res) as string | null) ?? '0');
+      if (used === amount) joinedCount++;
       console.log(
         used === amount
           ? `  ${short(b.id)} joins: ${d.qty} units, max ${formatUsdc(d.maxPrice)} [${d.source}] "${d.reasoning}"  ${txLink(res)}`
@@ -310,10 +333,9 @@ async function round() {
     }),
   );
 
-  await waitUntil(BigInt(r0.join_end), 'commit phase');
-
-  // Commit: sellers see the public demand, decide privately, and post only a hash + bond.
-  const joined = await view<ContractRound>(s.market.id, 'get_round', { round_id: roundId });
+  // Sellers read the public demand as soon as the joins land and decide while the join phase
+  // is still running, so their model calls don't eat into the commit phase either.
+  const joined = await viewUntil<ContractRound>(s.market.id, 'get_round', { round_id: roundId }, (r) => r.buyers.length >= joinedCount, 'the joins');
   const demand = joined.buyers.map((x) => ({ qty: x.qty, maxPrice: BigInt(x.max_price) }));
   const bids = await Promise.all(
     s.sellers.map(async (sel, i) => {
@@ -331,6 +353,10 @@ async function round() {
       };
     }),
   );
+
+  await waitUntil(BigInt(r0.join_end), 'commit phase');
+
+  // Commit: post only the hash of each sealed bid, plus the bond.
   await Promise.all(
     bids.map(async (b) => {
       const hash = commitment(roundId, b.sel.id, b.price, b.capacity, b.salt);

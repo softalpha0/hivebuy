@@ -7,6 +7,7 @@ import {
   checkSeller,
   nearAiBrain,
   scripted,
+  shortText,
 } from '../src/index.js';
 
 const buyer: BuyerProfile = { id: 'buyer-1', need: 6, valuePerUnit: 1_500_000n, budget: 8_000_000n };
@@ -33,6 +34,17 @@ describe('validation', () => {
     expect(checkSeller(seller, 800_000n, 10)).toMatch(/at least your cost/);
     expect(checkSeller(seller, 1_000_000n, 41)).toMatch(/capacity/);
     expect(checkSeller(seller, 1_000_000n, 40)).toBeNull();
+  });
+});
+
+describe('shortText', () => {
+  it('keeps short text and cuts long text at a word with an ellipsis', () => {
+    expect(shortText('Bid 5 at 1.40.')).toBe('Bid 5 at 1.40.');
+    const long = 'I need exactly 8 units and my per-unit value is 1.76 USDC, so qty=8 with max_price=1.76 uses my full budget of 14.08 USDC escrow. Since the';
+    const out = shortText(long);
+    expect(out.length).toBeLessThanOrEqual(120);
+    expect(out.endsWith('…')).toBe(true);
+    expect(out).not.toMatch(/\s…$/);
   });
 });
 

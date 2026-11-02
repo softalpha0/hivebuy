@@ -130,7 +130,7 @@ const BUYER_SCHEMA = {
   properties: {
     qty: { type: 'integer', description: 'Units (1M tokens each) to request' },
     max_price: { type: 'string', description: 'Highest USDC price per unit, like "1.25"' },
-    reasoning: { type: 'string', description: 'One short sentence, at most 120 characters' },
+    reasoning: { type: 'string', maxLength: 240, description: 'One short sentence, at most 15 words' },
   },
 };
 
@@ -141,14 +141,15 @@ const SELLER_SCHEMA = {
   properties: {
     price: { type: 'string', description: 'Sealed USDC price per unit, like "1.10"' },
     capacity: { type: 'integer', description: 'Units you offer' },
-    reasoning: { type: 'string', description: 'One short sentence, at most 120 characters' },
+    reasoning: { type: 'string', maxLength: 240, description: 'One short sentence, at most 15 words' },
   },
 };
 
 const RULES_SUMMARY =
   'Hivebuy market rules: buyers join with (qty, max_price) and lock qty × max_price USDC. Sellers submit sealed (price, capacity). ' +
   'The contract checks sellers from cheapest up; the first whose capacity covers all units wanted by buyers whose max_price >= its price wins at that price. ' +
-  'Each included buyer pays qty × clearing price and gets the rest of its escrow back. Excluded buyers get everything back.';
+  'Each included buyer pays qty × clearing price and gets the rest of its escrow back. Excluded buyers get everything back. ' +
+  'Answer only with the JSON object. Keep "reasoning" to one plain, complete sentence of at most 15 words.';
 
 export class NearAiError extends Error {}
 
@@ -227,7 +228,15 @@ function asPrice(v: unknown): Amount | null {
   }
 }
 
-const shortText = (v: unknown) => (typeof v === 'string' ? v.replace(/\s+/g, ' ').trim().slice(0, 140) : '');
+/** One line, at most `max` characters, cut at a word boundary with an ellipsis if needed. */
+export function shortText(v: unknown, max = 120): string {
+  if (typeof v !== 'string') return '';
+  const t = v.replace(/\s+/g, ' ').trim();
+  if (t.length <= max) return t;
+  const cut = t.slice(0, max - 1);
+  const space = cut.lastIndexOf(' ');
+  return `${(space > max * 0.6 ? cut.slice(0, space) : cut).replace(/[\s,;:.]+$/, '')}…`;
+}
 
 /** Asks the model, validates, retries once with the error, then falls back to the scripted rule. */
 async function decide<T>(

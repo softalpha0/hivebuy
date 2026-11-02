@@ -175,6 +175,15 @@ function renderDetail() {
         r.sellers.filter((s) => s.revealed).map((s) => ({ id: s.id, price: s.revealed!.price, capacity: s.revealed!.capacity, commitIndex: s.commitIndex })),
       )
     : [];
+  // A revealed bid at the winning price that lost: RULES.md section 4 gives ties to the earlier commit.
+  const winnerBid = r.sellers.find((x) => x.id === res?.winner);
+  const tieNote =
+    showResult && winnerBid?.revealed
+      ? r.sellers
+          .filter((x) => x.id !== winnerBid.id && x.revealed && x.revealed.price === winnerBid.revealed!.price)
+          .map((x) => `<li>${short(x.id)} also bid ${usd(x.revealed!.price)} but committed later; ties go to the earlier commit</li>`)
+          .join('')
+      : '';
   const trace = showResult
     ? `<h3>Why this result</h3><ol class="trace">${
         steps
@@ -185,7 +194,7 @@ function renderDetail() {
               }</li>`,
           )
           .join('') || '<li>No seller revealed a bid.</li>'
-      }${res.winner ? '' : '<li><b>No seller qualified: every buyer gets the full escrow back.</b></li>'}</ol>`
+      }${tieNote}${res.winner ? '' : '<li><b>No seller qualified: every buyer gets the full escrow back.</b></li>'}</ol>`
     : '';
 
   const note = (id: string, strategy?: string) => {
