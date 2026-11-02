@@ -39,6 +39,45 @@
           "source": "ai"
         }
       }
+    },
+    "3": {
+      "brain": "nearai:z-ai/glm-5.3-flash",
+      "buyers": {
+        "buyer-5.hivebuy.testnet": {
+          "reasoning": "Since my value is 1.26 and last round cleared at 1.29, I cap my bid at value to avoid overpaying.",
+          "source": "ai"
+        },
+        "buyer-3.hivebuy.testnet": {
+          "reasoning": "Budget 14.96 exactly covers 8 units at my true valuation 1.87, maximizing inclusion chances while escrow caps payment at",
+          "source": "ai"
+        },
+        "buyer-4.hivebuy.testnet": {
+          "reasoning": "Budget 4.64 caps max_price at 1.16 for 4 units, matching my per-unit value exactly.",
+          "source": "ai"
+        },
+        "buyer-2.hivebuy.testnet": {
+          "reasoning": "Bidding my true value 1.32 maximizes inclusion odds while guaranteeing I never pay above my per-unit worth.",
+          "source": "ai"
+        },
+        "buyer-1.hivebuy.testnet": {
+          "reasoning": "Budget allows exactly 5 × 1.76, and bidding full valuation maximizes inclusion chances while paying only the lower prior",
+          "source": "ai"
+        }
+      },
+      "sellers": {
+        "seller-1.hivebuy.testnet": {
+          "reasoning": "Bidding just below the 1.29 prior clear maximizes margin while likely winning all 25 demand units against costlier rival",
+          "source": "ai"
+        },
+        "seller-2.hivebuy.testnet": {
+          "reasoning": "Bidding just under last round's 1.29 clears captures high-value buyers while staying cheap enough to likely win against",
+          "source": "ai"
+        },
+        "seller-3.hivebuy.testnet": {
+          "reasoning": "Pricing just below last round's 1.29 clears all 25 demand units at a strong margin over my 0.97 cost.",
+          "source": "ai"
+        }
+      }
     }
   }
 }
