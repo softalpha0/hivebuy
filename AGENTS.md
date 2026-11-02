@@ -20,6 +20,7 @@ Read this first, then `RULES.md` and `docs/PLAN.md`.
 | `contracts/test-token` | tUSDC, test-only USDC stand-in for testnet. |
 | `packages/core` | TypeScript clearing rule, commitment hash, types. |
 | `packages/sim` | Simulation: 20 buyers, 5 sellers, scripted strategies, seeded. |
+| `packages/agents` | Agent brains: scripted rules and NEAR AI Cloud (schema-checked, scripted fallback). |
 | `apps/web` | Live page (Vite). Runs the simulation in the browser or reads a testnet contract. |
 | `scripts/testnet.ts` | Testnet runner: `npm run testnet -- setup`, `round`, `status` (docs/TESTNET.md). |
 | `scripts/intents-dry-run.ts` | NEAR Intents settlement checked with `simulate_intents` on mainnet. |
@@ -30,5 +31,7 @@ Read this first, then `RULES.md` and `docs/PLAN.md`.
 - Build one feature at a time. After each: `npm test`, `npm run typecheck`, `cargo test` in `contracts/market`.
 - Amounts are integers in the smallest USDC unit (6 decimals), as strings in JSON. Never use floats for money.
 - Never commit keys, seed phrases or `.env`. Add new variables to `.env.example`.
+- The NEAR AI key is only used by `scripts/testnet.ts` on the developer's machine. Never send it to the browser or the live page.
+- Seller reasoning reveals the sealed price: publish it only after the round has cleared.
 - Read the official docs before using a NEAR API: https://docs.near.org/llms.txt and https://docs.near-intents.org/llms.txt.
 - Explain errors before fixing them. Keep the README honest: only list features that work.

@@ -188,10 +188,18 @@ function renderDetail() {
       }${res.winner ? '' : '<li><b>No seller qualified: every buyer gets the full escrow back.</b></li>'}</ol>`
     : '';
 
+  const note = (id: string, strategy?: string) => {
+    const n = r.notes?.byAgent[id];
+    if (!n) return esc(strategy ?? '—');
+    const tag = n.source === 'ai' ? '' : ` <span class="pill">${esc(n.source)}</span>`;
+    return `<span class="why">${esc(n.reasoning)}</span>${tag}`;
+  };
+  const whyHead = r.notes ? 'Agent reasoning' : 'Strategy';
+
   const sellers = stage >= 1
     ? `<h3>Sellers <span class="muted">(${r.sellers.length})</span></h3>
       <div class="table-wrap"><table>
-        <thead><tr><th>Seller</th><th>Strategy</th><th>Commitment</th><th class="num">Price</th><th class="num">Capacity</th><th>Status</th></tr></thead>
+        <thead><tr><th>Seller</th><th>${whyHead}</th><th>Commitment</th><th class="num">Price</th><th class="num">Capacity</th><th>Status</th></tr></thead>
         <tbody>${[...r.sellers]
           .sort((a, b) => a.commitIndex - b.commitIndex)
           .map((s) => {
@@ -205,7 +213,7 @@ function renderDetail() {
                     ? '<span class="pill">revealed</span>'
                     : '<span class="pill warn">no reveal, bond forfeited</span>';
             return `<tr class="${winner === s.id ? 'win-row' : ''}">
-              <td>${short(s.id)}</td><td class="muted">${esc(s.strategy ?? '—')}</td>
+              <td>${short(s.id)}</td><td class="muted wrap">${stage >= 3 ? note(s.id, s.strategy) : esc(s.strategy ?? '—')}</td>
               <td><code title="${esc(s.commitment)}">${esc(s.commitment.slice(0, 10))}…</code></td>
               <td class="num">${open ? usd(s.revealed!.price) : '••••'}</td>
               <td class="num">${open ? s.revealed!.capacity : '••'}</td><td>${status}</td></tr>`;
@@ -216,14 +224,14 @@ function renderDetail() {
   const settle = new Map(res?.settlements.map((s) => [s.id, s]) ?? []);
   const buyers = `<h3>Buyers <span class="muted">(${r.buyers.length})</span></h3>
     <div class="table-wrap"><table>
-      <thead><tr><th>Buyer</th><th>Strategy</th><th class="num">Qty</th><th class="num">Max</th><th class="num">Escrow</th>${
+      <thead><tr><th>Buyer</th><th>${whyHead}</th><th class="num">Qty</th><th class="num">Max</th><th class="num">Escrow</th>${
         showResult ? '<th class="num">Pays</th><th class="num">Refund</th>' : ''
       }</tr></thead>
       <tbody>${r.buyers
         .map((b) => {
           const s = settle.get(b.id);
           return `<tr class="${showResult && s && !s.included ? 'out-row' : ''}">
-            <td>${short(b.id)}</td><td class="muted">${esc(b.strategy ?? '—')}</td>
+            <td>${short(b.id)}</td><td class="muted wrap">${note(b.id, b.strategy)}</td>
             <td class="num">${b.qty}</td><td class="num">${usd(b.maxPrice)}</td><td class="num">${usd(b.escrow)}</td>${
               showResult && s ? `<td class="num">${s.included ? usd(s.pay) : '<span class="muted">out</span>'}</td><td class="num">${usd(s.refund)}</td>` : ''
             }</tr>`;
@@ -233,6 +241,7 @@ function renderDetail() {
   el.innerHTML = `
     <div class="detail-head">
       <h2>Round ${r.id} <span class="muted">· ${esc(r.unit)} · ${r.source}</span></h2>
+      ${r.notes ? `<span class="pill brain">agents: ${esc(r.notes.brain.startsWith('nearai:') ? `NEAR AI · ${r.notes.brain.slice(7)}` : r.notes.brain)}</span>` : ''}
       ${res ? '<button id="replay" class="ghost" type="button">Replay round</button>' : ''}
     </div>
     <ol class="stepper">${stepper}</ol>

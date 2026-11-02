@@ -60,8 +60,30 @@ function phaseOf(r: ContractRound, nowNs: bigint): ViewRound['phase'] {
   return 'clearable';
 }
 
+interface NotesFile {
+  rounds: Record<string, { brain: string; buyers: Record<string, NoteEntry>; sellers: Record<string, NoteEntry> }>;
+}
+interface NoteEntry {
+  reasoning: string;
+  source: string;
+}
+
+/** Agent reasoning published with the site (apps/web/public/agent-notes/<contract>.json), if any. */
+async function loadNotes(contract: string): Promise<NotesFile | null> {
+  if (!/^[a-z0-9._-]+$/.test(contract)) return null;
+  try {
+    const res = await fetch(`/agent-notes/${contract}.json`, { signal: AbortSignal.timeout(10_000) });
+    return res.ok && (res.headers.get('content-type') ?? '').includes('json') ? ((await res.json()) as NotesFile) : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function loadTestnetRounds(contract: string): Promise<ViewRound[]> {
-  const rounds = await view<ContractRound[]>(contract, 'get_latest_rounds', { limit: 20 });
+  const [rounds, notes] = await Promise.all([
+    view<ContractRound[]>(contract, 'get_latest_rounds', { limit: 20 }),
+    loadNotes(contract),
+  ]);
   const nowNs = BigInt(Date.now()) * 1_000_000n;
   return rounds
     .map((r): ViewRound => {
@@ -98,6 +120,10 @@ export async function loadTestnetRounds(contract: string): Promise<ViewRound[]> 
             }
           : null,
         forfeited: r.outcome ? r.sellers.filter((s) => !revealedIds.has(s.account_id)).map((s) => s.account_id) : [],
+        notes: (() => {
+          const n = notes?.rounds[String(r.id)];
+          return n ? { brain: n.brain, byAgent: { ...n.buyers, ...n.sellers } } : undefined;
+        })(),
       };
     })
     .sort((a, b) => a.id - b.id);

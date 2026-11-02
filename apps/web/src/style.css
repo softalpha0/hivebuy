@@ -145,3 +145,7 @@ tr:last-child td { border-bottom: 0; }
 .pill.warn { background: var(--warn-soft); color: var(--warn); border-color: transparent; }
 
 .foot { color: var(--muted); font-size: 13px; padding-bottom: 28px; }
+
+td.wrap { white-space: normal; min-width: 220px; max-width: 360px; }
+.why { font-size: 13px; line-height: 1.35; }
+.pill.brain { background: var(--accent-soft); color: var(--ink); border-color: var(--accent); }

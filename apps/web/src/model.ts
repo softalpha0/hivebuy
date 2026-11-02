@@ -17,6 +17,8 @@ export interface ViewRound {
   }[];
   result: { winner: string | null; price: Amount | null; demand: number; settlements: Settlement[] } | null;
   forfeited: string[];
+  /** Published agent reasoning (testnet rounds run by scripts/testnet.ts). */
+  notes?: { brain: string; byAgent: Record<string, { reasoning: string; source: string }> };
 }
 
 export function fromSimulation(run: SimRun): ViewRound[] {

@@ -7,7 +7,7 @@ Built for NEAR Hackathon 2026, **AI Swarms track** (`swarms`).
 - **Live demo:** https://hivebuy-six.vercel.app
 - **Live round on NEAR testnet:** https://hivebuy-six.vercel.app/?contract=market.hivebuy.testnet
 - **Market rules:** [RULES.md](RULES.md)
-- **Demo video:** https://hivebuy-six.vercel.app
+- **Demo video:** coming soon
 
 ![Hivebuy live page: a cleared round with sealed and revealed bids](docs/screenshots/simulation.png)
 
@@ -28,6 +28,16 @@ Agents form a market round:
 
 Every agent signs with its own NEAR sub-account (`buyer-1.hivebuy.testnet`, `seller-3.hivebuy.testnet`, …), so every on-chain action traces back to one agent.
 
+## The agents
+
+In live rounds the agents can think with a model on **NEAR AI Cloud** (`AGENTS=ai`, default model `z-ai/glm-5.3-flash`, which runs as private inference in a TEE):
+
+- **Buyer agents** get their need, the value of a unit to them and a budget, and choose how many units to request and the most they'll pay. Their one-line reasoning is written on-chain in the memo of their `ft_transfer_call`.
+- **Provider agents** see the public pooled demand, their own cost and capacity, and the last clearing price, and choose a sealed price. Their reasoning stays private until the round is over, because it would reveal the sealed price; it is then published next to the round on the live page.
+- Every answer must match a JSON schema and is checked in code (budget, cost floor, capacity, price range). An invalid answer is retried once with the error; if it is still invalid, the agent falls back to its scripted rule and the page says so.
+
+The simulation on the live page uses scripted agents only, so it runs in the browser with no API key.
+
 ## Try it (no wallet, no setup)
 
 1. Open the live demo → see 10 simulated rounds between 20 buyer agents and 5 provider agents.
@@ -43,7 +53,7 @@ Requires Node.js 20 or newer. Works on Windows (PowerShell), macOS and Linux.
 
 ```powershell
 npm install
-npm test                  # 18 TypeScript tests: clearing rule, shared vectors, simulation
+npm test                  # 26 TypeScript tests: clearing rule, shared vectors, simulation, agents
 npm run sim -- --seed 42  # the market in your terminal: 20 buyers, 5 sellers, no LLM calls
 npm run dev               # live page at http://localhost:5173
 ```
@@ -68,6 +78,7 @@ Run real rounds on NEAR testnet: [docs/TESTNET.md](docs/TESTNET.md).
 | Live page: rounds, sealed and revealed bids, clearing price chart, who paid what | ✅ simulation and testnet |
 | Testnet script: creates the coordinator and agent sub-accounts, runs live rounds | ✅ |
 | NEAR Intents settlement, dry run against the real mainnet Verifier | ✅ (`npm run intents:dry-run`) |
+| AI agents on NEAR AI Cloud: buyers bid from their need and budget, providers price from demand and cost; schema-checked with a scripted fallback; reasoning shown on the live page | ✅ (`AGENTS=ai`, 8 unit tests with a mocked API) |
 | Delivery of inference credits (API key with a spending limit) | ⏳ off-chain, not in v1 |
 
 ## How NEAR is used
@@ -79,6 +90,7 @@ Run real rounds on NEAR testnet: [docs/TESTNET.md](docs/TESTNET.md).
 | NEP-141 + `ft_transfer_call` | Buyers join and fund escrow in one transaction; a failed join is refunded automatically |
 | NEAR bonds (`#[payable]`) | Providers stake a bond with each sealed bid, forfeited if they don't reveal |
 | NEAR Intents | Mainnet settlement path: one signed `transfer` intent per buyer to the winner, verified with `simulate_intents` on `intents.near` |
+| NEAR AI Cloud | The agents' decisions (`z-ai/glm-5.3-flash`, private inference in a TEE) through the OpenAI-compatible API |
 
 **About the NEAR Intents dry run.** NEAR Intents has no testnet, so the live market settles inside the coordinator on testnet. `npm run intents:dry-run` takes a cleared round, signs one NEP-413 `transfer` intent per included buyer, and sends the batch to `simulate_intents` on the real mainnet Verifier. The Verifier accepts the signatures and nonces and rejects only for missing balance (the fresh agent accounts hold no USDC). With a corrupted signature it answers `invalid signature`, which shows the signatures really are checked.
 
@@ -92,6 +104,7 @@ Run real rounds on NEAR testnet: [docs/TESTNET.md](docs/TESTNET.md).
 | [contracts/test-token](contracts/test-token) | tUSDC, a test-only USDC stand-in for testnet |
 | [packages/core](packages/core) | Clearing rule, commitment hash, USDC formatting |
 | [packages/sim](packages/sim) | Agent simulation |
+| [packages/agents](packages/agents) | Agent brains: scripted rules and NEAR AI Cloud |
 | [apps/web](apps/web) | Live page |
 | [scripts](scripts) | Testnet runner and NEAR Intents dry run |
 | [docs](docs) | Plan, testnet guide, deployment, demo script, submission checklist |
@@ -100,14 +113,13 @@ Run real rounds on NEAR testnet: [docs/TESTNET.md](docs/TESTNET.md).
 
 - Built during NEAR Hackathon 2026 (Nov 1–14). No code from before the event.
 - AI-assisted: written with an AI coding assistant, reviewed and tested by the author.
-- Libraries used: near-sdk and near-contract-standards (Rust), near-api-js, @noble/hashes, Vite, Vitest, tsx. `contracts/test-token` is adapted from the near-sdk-rs fungible-token example.
+- Libraries used: near-sdk and near-contract-standards (Rust), near-api-js, @noble/hashes, Vite, Vitest, tsx. Agent decisions use NEAR AI Cloud. `contracts/test-token` is adapted from the near-sdk-rs fungible-token example.
 - Testnet only. No real funds are used.
 
 ## What's next
 
 - Rounds with several winners at one uniform price.
 - Delivery receipts: the winner posts a reference for each buyer's API key; buyers confirm.
-- Buyer agents that turn a plain-language request into a bid with NEAR AI Cloud.
 - Mainnet settlement through NEAR Intents (`execute_intents`).
 
 ## License

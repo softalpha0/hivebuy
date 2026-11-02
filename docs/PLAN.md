@@ -26,7 +26,7 @@ A developer or small app that runs an agent needing a few million tokens of open
 | **Must** | Each agent on its own sub-account (`buyer-1.hivebuy.testnet`, …) |
 | **Should** | Script that runs one live round on testnet with real agent sub-accounts and testnet USDC |
 | **Should** | NEAR Intents settlement adapter: builds the transfer intents for a cleared round and checks them with `simulate_intents` (dry run, no funds) |
-| **Could** | Buyer agents that turn a plain-language request into `(qty, max_price)` with NEAR AI Cloud |
+| **Could** ✅ | AI buyer and seller agents on NEAR AI Cloud, schema-checked with a scripted fallback, reasoning on the live page |
 | **Could** | Winner posts a delivery reference per buyer (API key issued off-chain) |
 | **Won't (now)** | Real provider integrations, mainnet deployment, reputation scores |
 
@@ -45,7 +45,7 @@ A developer or small app that runs an agent needing a few million tokens of open
 | Nov 3 | Create `hivebuy.testnet`, run `npm run testnet -- setup` and a first live round (docs/TESTNET.md) |
 | Nov 4 | **Put the live page online** (first quarter of the event) |
 | Nov 5–7 | Polish from your own testing; optional: rounds with several winners |
-| Nov 8 | Optional NEAR AI buyer agents |
+| Nov 8 | ✅ NEAR AI agents (done early); run AI rounds and publish their reasoning |
 | Nov 9 | Polish, phone check, realistic demo data |
 | **Nov 10** | **Feature freeze** — only fixes from here |
 | Nov 11 | README pass for AI screeners, screenshots |

@@ -36,7 +36,7 @@ Structure from *Hackathon 101*, chapter 16: problem → solution → one journey
 
 *Switch to the Testnet contract tab, load your contract, show a cleared round.*
 
-> "This isn't only a simulation. This is a real round on NEAR testnet: five buyer agents and three providers, each on its own sub-account, and every payment matches to the cent."
+> "This isn't only a simulation. This is a real round on NEAR testnet: five buyer agents and three providers, each on its own sub-account, each thinking with a model on NEAR AI Cloud. Here's why this provider chose its price, published only after the reveal. And every payment matches to the cent."
 
 ### 4. How it works (2:00–2:25)
 
@@ -46,7 +46,7 @@ Structure from *Hackathon 101*, chapter 16: problem → solution → one journey
 
 ### 5. What's next (2:25–2:40)
 
-> "Next: rounds with several winners, delivery receipts for the inference credits, and buyer agents that bid from a plain-language request. So agents don't have to buy alone."
+> "Next: rounds with several winners, delivery receipts for the inference credits, and mainnet settlement through NEAR Intents. So agents don't have to buy alone."
 
 ---
 

@@ -95,7 +95,19 @@ The script opens a round (30 seconds per phase by default; change with `PHASE_SE
 
 Each step prints a testnet explorer link. Check balances any time with `npm run testnet -- status`.
 
-## 8. See it on the live page
+## 8. Let the agents think with NEAR AI (optional)
+
+1. Create an API key at https://cloud.near.ai (your NEAR Builders credits work here). Set a spending limit on the key.
+2. In `.env`, set `AGENTS=ai` and `NEARAI_API_KEY=<your key>`. Never commit `.env`.
+3. Run a round as before: `npm run testnet -- round`. The script first checks the key with a tiny request, then every agent decides with `z-ai/glm-5.3-flash` and prints its reasoning. Cost: well under one cent per round.
+4. When the round ends, the reasoning is saved to `apps/web/public/agent-notes/market.hivebuy.testnet.json`. Commit and push it, and the live page shows each agent's reasoning next to its bid:
+   ```powershell
+   git add apps/web/public/agent-notes
+   git commit -m "Agent reasoning for round N"
+   git push
+   ```
+
+## 9. See it on the live page
 
 ```powershell
 npm run dev
@@ -112,4 +124,6 @@ Open `http://localhost:5173/?contract=market.hivebuy.testnet`, or open the **Tes
 | `Build the contract first` | Run step 4. |
 | `Not enough balance for buyer-…` | Run `npm run testnet -- setup` again; it tops agents up. If the parent runs low, create a new faucet account. |
 | A buyer "was refunded" | Its join arrived after the join phase. Increase `PHASE_SECS`. |
+| `NEAR AI rejected the API key` | Check `NEARAI_API_KEY` in `.env` (no quotes, no spaces). No round was opened. |
+| An agent shows `fallback` | The model's answer broke a rule twice (for example over budget), so the agent used its scripted rule. The round is still valid. |
 | RPC errors or 429 | The scripts use `https://test.rpc.fastnear.com` (the old `rpc.testnet.near.org` is deprecated). Set `NEAR_RPC_URL` in `.env` to another provider from https://docs.near.org/api/rpc/providers. |

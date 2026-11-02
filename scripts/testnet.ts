@@ -7,6 +7,9 @@
  *
  * Reads PARENT_ACCOUNT (and optionally PARENT_PRIVATE_KEY, TOKEN, BUYERS, SELLERS, PHASE_SECS) from
  * the environment or `.env`. Agent keys are written to `.hivebuy/testnet.json`, which is gitignored.
+ *
+ * AGENTS=ai makes every agent decide with a model on NEAR AI Cloud (needs NEARAI_API_KEY); the
+ * default is the scripted rules. Each round's reasoning is saved to apps/web/public/agent-notes/.
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -14,6 +17,7 @@ import { join, resolve } from 'node:path';
 import { Account, JsonRpcProvider, KeyPair, KeyPairSigner, actions, getTransactionLastResult, nearToYocto, teraToGas } from 'near-api-js';
 import type { KeyPairString } from 'near-api-js';
 import { commitment, formatUsdc } from '@hivebuy/core';
+import { type Brain, NearAiClient, nearAiBrain, scripted } from '@hivebuy/agents';
 
 // ---------- config ----------
 
@@ -222,38 +226,77 @@ async function setup() {
   console.log(`\nDone. Keys saved to ${STATE_FILE} (gitignored). Next: npm run testnet -- round`);
 }
 
+interface ContractRound {
+  id: number;
+  join_end: string;
+  commit_end: string;
+  reveal_end: string;
+  buyers: { account_id: string; qty: number; max_price: string }[];
+  outcome: { price: string | null } | null;
+}
+
+/** Agent brain for this round: scripted rules, or NEAR AI Cloud when AGENTS=ai (key checked first). */
+async function pickBrain(): Promise<Brain> {
+  if ((process.env.AGENTS ?? 'scripted') !== 'ai') return scripted;
+  const apiKey = process.env.NEARAI_API_KEY ?? '';
+  if (!apiKey) {
+    console.error('AGENTS=ai needs NEARAI_API_KEY in .env (create a key at https://cloud.near.ai).');
+    process.exit(1);
+  }
+  const client = new NearAiClient({ apiKey, model: process.env.NEARAI_MODEL || undefined, baseUrl: process.env.NEARAI_BASE_URL || undefined });
+  await client.check();
+  return nearAiBrain(client);
+}
+
 async function round() {
   const s = loadState();
   const phase = Number(process.env.PHASE_SECS ?? 30);
+  const brain = await pickBrain();
   const p = parent();
   const rand = (lo: number, hi: number) => lo + Math.random() * (hi - lo);
+  const usdc = (dollars: number) => BigInt(Math.round(dollars * 100)) * 10_000n;
 
-  console.log(`Opening a round on ${s.market.id} (${phase}s per phase)…`);
+  // The previous clearing price is public; agents may use it.
+  const previous = await view<ContractRound[]>(s.market.id, 'get_latest_rounds', { limit: 5 });
+  const lastPriceRaw = previous.find((r) => r.outcome?.price)?.outcome?.price ?? null;
+  const lastPrice = lastPriceRaw === null ? null : BigInt(lastPriceRaw);
+
+  console.log(`Opening a round on ${s.market.id} (${phase}s per phase, agents: ${brain.name})…`);
   const roundId = await p.callFunction<number>({
     contractId: s.market.id,
     methodName: 'open_round',
     args: { unit: '1M tokens', join_secs: phase, commit_secs: phase, reveal_secs: phase, seller_bond: BOND.toString() },
     gas: GAS,
   });
-  const r0 = await view<{ join_end: string; commit_end: string; reveal_end: string }>(s.market.id, 'get_round', { round_id: roundId });
+  const r0 = await view<ContractRound>(s.market.id, 'get_round', { round_id: roundId });
   console.log(`Round ${roundId} open.`);
 
-  // Join: each buyer locks qty × max price with ft_transfer_call. All buyers send at once.
+  const notes: RoundNotes = { brain: brain.name, buyers: {}, sellers: {} };
+
+  // Join: each buyer decides (qty, max price) and locks qty × max price with ft_transfer_call.
   await Promise.all(
     s.buyers.map(async (b) => {
-      const max = BigInt(Math.round(rand(1.0, 1.9) * 100)) * 10_000n;
-      // Never lock more than the buyer holds.
       const balance = BigInt(await view<string>(s.token, 'ft_balance_of', { account_id: b.id }));
-      const qty = Math.min(Math.floor(rand(2, 9)), Number(balance / max));
-      if (qty < 1) {
-        console.log(`  ${short(b.id)} skips: balance ${formatUsdc(balance)} is below one unit at ${formatUsdc(max)}`);
+      const need = Math.floor(rand(2, 9));
+      const valuePerUnit = usdc(rand(1.0, 1.9));
+      const budget = [balance, BigInt(need) * valuePerUnit].reduce((x, y) => (x < y ? x : y));
+      if (budget < 100_000n) {
+        console.log(`  ${short(b.id)} skips: balance ${formatUsdc(balance)} is too low`);
         return;
       }
-      const amount = BigInt(qty) * max;
+      const d = await brain.buyer({ id: b.id, need, valuePerUnit, budget }, { lastPrice });
+      notes.buyers[b.id] = { reasoning: d.reasoning, source: d.source };
+      const amount = BigInt(d.qty) * d.maxPrice;
       const res = await account(b.id, b.key).callFunctionRaw({
         contractId: s.token,
         methodName: 'ft_transfer_call',
-        args: { receiver_id: s.market.id, amount: amount.toString(), msg: JSON.stringify({ round_id: roundId, qty, max_price: max.toString() }) },
+        args: {
+          receiver_id: s.market.id,
+          amount: amount.toString(),
+          // The buyer's reasoning is public anyway (joins are public), so it is recorded on-chain in the memo.
+          memo: d.reasoning.slice(0, 100),
+          msg: JSON.stringify({ round_id: roundId, qty: d.qty, max_price: d.maxPrice.toString() }),
+        },
         deposit: 1n,
         gas: GAS_FT_CALL,
       });
@@ -261,7 +304,7 @@ async function round() {
       const used = BigInt((getTransactionLastResult(res) as string | null) ?? '0');
       console.log(
         used === amount
-          ? `  ${short(b.id)} joins: ${qty} units, max ${formatUsdc(max)}  ${txLink(res)}`
+          ? `  ${short(b.id)} joins: ${d.qty} units, max ${formatUsdc(d.maxPrice)} [${d.source}] "${d.reasoning}"  ${txLink(res)}`
           : `  ${short(b.id)} was refunded: the coordinator rejected the join (late or invalid)  ${txLink(res)}`,
       );
     }),
@@ -269,14 +312,25 @@ async function round() {
 
   await waitUntil(BigInt(r0.join_end), 'commit phase');
 
-  // Commit: sealed price + bond. Salts stay in memory until reveal.
-  const bids = s.sellers.map((sel, i) => ({
-    sel,
-    price: BigInt(Math.round(rand(0.9, 1.5) * 100)) * 10_000n,
-    capacity: Math.floor(rand(10, 45)),
-    salt: crypto.randomUUID(),
-    reveals: i < s.sellers.length - 1 || s.sellers.length === 1 || Math.random() < 0.5,
-  }));
+  // Commit: sellers see the public demand, decide privately, and post only a hash + bond.
+  const joined = await view<ContractRound>(s.market.id, 'get_round', { round_id: roundId });
+  const demand = joined.buyers.map((x) => ({ qty: x.qty, maxPrice: BigInt(x.max_price) }));
+  const bids = await Promise.all(
+    s.sellers.map(async (sel, i) => {
+      const profile = { id: sel.id, cost: usdc(rand(0.8, 1.2)), capacity: Math.floor(rand(15, 45)) };
+      const d = await brain.seller(profile, { lastPrice, demand });
+      return {
+        sel,
+        price: d.price,
+        capacity: d.capacity,
+        reasoning: d.reasoning,
+        source: d.source,
+        salt: crypto.randomUUID(),
+        // The last seller sometimes skips the reveal, to show the bond forfeit.
+        reveals: i < s.sellers.length - 1 || s.sellers.length === 1 || Math.random() < 0.5,
+      };
+    }),
+  );
   await Promise.all(
     bids.map(async (b) => {
       const hash = commitment(roundId, b.sel.id, b.price, b.capacity, b.salt);
@@ -299,7 +353,7 @@ async function round() {
         args: { round_id: roundId, price: b.price.toString(), capacity: b.capacity, salt: b.salt },
         gas: GAS,
       });
-      console.log(`  ${short(b.sel.id)} reveals ${formatUsdc(b.price)} × ${b.capacity}  ${txLink(res)}`);
+      console.log(`  ${short(b.sel.id)} reveals ${formatUsdc(b.price)} × ${b.capacity} [${b.source}] "${b.reasoning}"  ${txLink(res)}`);
     }),
   );
 
@@ -325,7 +379,30 @@ async function round() {
       console.log(`  ${short(a.id)} withdrew ${formatUsdc(credit)}`);
     }),
   );
-  console.log(`\nSee it on the live page: npm run dev, then open http://localhost:5173/?contract=${s.market.id}`);
+
+  // Publish the agents' reasoning for the live page. Written only now: before the reveal,
+  // a seller's reasoning would leak its sealed price.
+  for (const b of bids) notes.sellers[b.sel.id] = { reasoning: b.reasoning, source: b.source };
+  const file = saveNotes(s.market.id, roundId, notes);
+  console.log(`\nAgent reasoning saved to ${file}. Commit and push it to show it on the live page.`);
+  console.log(`See it: https://hivebuy-six.vercel.app/?contract=${s.market.id} (or npm run dev, then http://localhost:5173/?contract=${s.market.id})`);
+}
+
+interface RoundNotes {
+  brain: string;
+  buyers: Record<string, { reasoning: string; source: string }>;
+  sellers: Record<string, { reasoning: string; source: string }>;
+}
+
+/** apps/web/public/agent-notes/<contract>.json, one entry per round. Served by the live page. */
+function saveNotes(contract: string, roundId: number, notes: RoundNotes): string {
+  const dir = resolve('apps', 'web', 'public', 'agent-notes');
+  const file = join(dir, `${contract}.json`);
+  mkdirSync(dir, { recursive: true });
+  const all = existsSync(file) ? (JSON.parse(readFileSync(file, 'utf8')) as { contract: string; rounds: Record<string, RoundNotes> }) : { contract, rounds: {} };
+  all.rounds[String(roundId)] = notes;
+  writeFileSync(file, JSON.stringify(all, null, 2) + '\n');
+  return file;
 }
 
 async function status() {
