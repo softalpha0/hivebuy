@@ -4,7 +4,8 @@
 
 Built for NEAR Hackathon 2026, **AI Swarms track** (`swarms`).
 
-- **Live demo:** _add your hosted link here (see docs/DEPLOY.md)_
+- **Live demo:** https://hivebuy-six.vercel.app
+- **Live round on NEAR testnet:** https://hivebuy-six.vercel.app/?contract=market.hivebuy.testnet
 - **Market rules:** [RULES.md](RULES.md)
 - **Demo video:** https://hivebuy-six.vercel.app
 
