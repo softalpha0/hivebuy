@@ -1,0 +1,44 @@
+{
+  "contract": "market.hivebuy.testnet",
+  "rounds": {
+    "2": {
+      "brain": "nearai:z-ai/glm-5.3-flash",
+      "buyers": {
+        "buyer-2.hivebuy.testnet": {
+          "reasoning": "I need exactly 8 units and my per-unit value is 1.76 USDC, so qty=8 with max_price=1.76 uses my full budget of 14.08 USDC escrow. Since the ",
+          "source": "ai"
+        },
+        "buyer-3.hivebuy.testnet": {
+          "reasoning": "Each unit is worth 1.65 to me, so with qty=2 my max_price caps at 3.30/2 = 1.65. Bidding the full 1.65 maximizes my chance of inclusion whil",
+          "source": "ai"
+        },
+        "buyer-1.hivebuy.testnet": {
+          "reasoning": "qty=6 with max_price=1.29 uses exactly my budget (6 × 1.29 = 7.74 USDC escrow). Since each unit is worth 1.29 to me, I want to be included a",
+          "source": "ai"
+        },
+        "buyer-4.hivebuy.testnet": {
+          "reasoning": "I need all 7 units and value each at 1.40, so bidding max_price = 1.40 uses my full budget (7 × 1.40 = 9.80) without ever risking paying abo",
+          "source": "ai"
+        },
+        "buyer-5.hivebuy.testnet": {
+          "reasoning": "Budget 11.76 = 8 × 1.47, so qty 8 at max_price 1.47 exactly fits. Escrow locks 11.76; if the clearing price is lower (last round: 1.28), I p",
+          "source": "ai"
+        }
+      },
+      "sellers": {
+        "seller-1.hivebuy.testnet": {
+          "reasoning": "Demand is highly price-inelastic: 23 of 31 units accept up to 1.47+, and only the 6 units capped at 1.29 drop out above that. Pricing at 1.4",
+          "source": "ai"
+        },
+        "seller-2.hivebuy.testnet": {
+          "reasoning": "At 1.29 all 31 demanded units clear (every buyer max_price >= 1.29), capacity 31 exactly covers demand so I win the round at 1.29, earning (",
+          "source": "ai"
+        },
+        "seller-3.hivebuy.testnet": {
+          "reasoning": "Demand at each candidate price: ≥1.29 → 31u, ≥1.40 → 23u, ≥1.47 → 10u, ≥1.65 → 2u. At 1.46 I capture the 23-unit tranche (profit ≈ 10.58) if",
+          "source": "ai"
+        }
+      }
+    }
+  }
+}
