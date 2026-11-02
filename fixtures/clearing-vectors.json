@@ -1,0 +1,131 @@
+{
+  "commitments": [
+    {
+      "name": "spec example",
+      "round_id": 7,
+      "seller_id": "seller-2.hivebuy.testnet",
+      "price": "1400000",
+      "capacity": 40,
+      "salt": "s3cret-salt",
+      "expected": "4bf31ff29c53705bc8cc5e561ac2bda9ce23978f8b8ea9c76dd3b532f2a17f25"
+    }
+  ],
+  "clearing": [
+    {
+      "name": "worked example from RULES.md",
+      "buyers": [
+        { "id": "a", "qty": 10, "max_price": "2000000" },
+        { "id": "b", "qty": 5, "max_price": "1500000" },
+        { "id": "c", "qty": 20, "max_price": "1200000" }
+      ],
+      "sellers": [
+        { "id": "s1", "price": "1100000", "capacity": 20, "commit_index": 0 },
+        { "id": "s2", "price": "1400000", "capacity": 40, "commit_index": 1 },
+        { "id": "s3", "price": "1900000", "capacity": 100, "commit_index": 2 }
+      ],
+      "expected": {
+        "status": "cleared",
+        "winner": "s2",
+        "price": "1400000",
+        "settlements": [
+          { "id": "a", "included": true, "pay": "14000000", "refund": "6000000" },
+          { "id": "b", "included": true, "pay": "7000000", "refund": "500000" },
+          { "id": "c", "included": false, "pay": "0", "refund": "24000000" }
+        ]
+      }
+    },
+    {
+      "name": "cheapest seller covers everyone",
+      "buyers": [
+        { "id": "a", "qty": 3, "max_price": "1000000" },
+        { "id": "b", "qty": 4, "max_price": "900000" }
+      ],
+      "sellers": [
+        { "id": "s1", "price": "800000", "capacity": 7, "commit_index": 0 },
+        { "id": "s2", "price": "850000", "capacity": 100, "commit_index": 1 }
+      ],
+      "expected": {
+        "status": "cleared",
+        "winner": "s1",
+        "price": "800000",
+        "settlements": [
+          { "id": "a", "included": true, "pay": "2400000", "refund": "600000" },
+          { "id": "b", "included": true, "pay": "3200000", "refund": "400000" }
+        ]
+      }
+    },
+    {
+      "name": "tie on price goes to the earlier commit",
+      "buyers": [{ "id": "a", "qty": 5, "max_price": "1000000" }],
+      "sellers": [
+        { "id": "late", "price": "900000", "capacity": 10, "commit_index": 1 },
+        { "id": "early", "price": "900000", "capacity": 10, "commit_index": 0 }
+      ],
+      "expected": {
+        "status": "cleared",
+        "winner": "early",
+        "price": "900000",
+        "settlements": [{ "id": "a", "included": true, "pay": "4500000", "refund": "500000" }]
+      }
+    },
+    {
+      "name": "buyer max exactly equal to price is included",
+      "buyers": [
+        { "id": "a", "qty": 2, "max_price": "1000000" },
+        { "id": "b", "qty": 2, "max_price": "999999" }
+      ],
+      "sellers": [{ "id": "s1", "price": "1000000", "capacity": 2, "commit_index": 0 }],
+      "expected": {
+        "status": "cleared",
+        "winner": "s1",
+        "price": "1000000",
+        "settlements": [
+          { "id": "a", "included": true, "pay": "2000000", "refund": "0" },
+          { "id": "b", "included": false, "pay": "0", "refund": "1999998" }
+        ]
+      }
+    },
+    {
+      "name": "no seller has enough capacity: round fails",
+      "buyers": [{ "id": "a", "qty": 50, "max_price": "2000000" }],
+      "sellers": [
+        { "id": "s1", "price": "1000000", "capacity": 10, "commit_index": 0 },
+        { "id": "s2", "price": "1500000", "capacity": 49, "commit_index": 1 }
+      ],
+      "expected": {
+        "status": "failed",
+        "winner": null,
+        "price": null,
+        "settlements": [{ "id": "a", "included": false, "pay": "0", "refund": "100000000" }]
+      }
+    },
+    {
+      "name": "every price above every buyer max: round fails",
+      "buyers": [{ "id": "a", "qty": 1, "max_price": "500000" }],
+      "sellers": [{ "id": "s1", "price": "600000", "capacity": 10, "commit_index": 0 }],
+      "expected": {
+        "status": "failed",
+        "winner": null,
+        "price": null,
+        "settlements": [{ "id": "a", "included": false, "pay": "0", "refund": "500000" }]
+      }
+    },
+    {
+      "name": "no reveals: round fails",
+      "buyers": [{ "id": "a", "qty": 1, "max_price": "500000" }],
+      "sellers": [],
+      "expected": {
+        "status": "failed",
+        "winner": null,
+        "price": null,
+        "settlements": [{ "id": "a", "included": false, "pay": "0", "refund": "500000" }]
+      }
+    },
+    {
+      "name": "no buyers: round fails",
+      "buyers": [],
+      "sellers": [{ "id": "s1", "price": "600000", "capacity": 10, "commit_index": 0 }],
+      "expected": { "status": "failed", "winner": null, "price": null, "settlements": [] }
+    }
+  ]
+}

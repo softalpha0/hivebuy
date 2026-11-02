@@ -1,0 +1,35 @@
+{
+  "name": "hivebuy",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Group-buying swarm on NEAR: buyer agents pool demand for AI inference, provider agents bid sealed, a coordinator contract clears and settles.",
+  "license": "MIT",
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "sim": "tsx packages/sim/src/cli.ts",
+    "dev": "npm run dev -w apps/web",
+    "build": "npm run build -w apps/web",
+    "preview": "npm run preview -w apps/web",
+    "contract:test": "cd contracts/market && cargo test",
+    "contract:build": "cd contracts/market && cargo near build non-reproducible-wasm",
+    "intents:dry-run": "tsx scripts/intents-dry-run.ts",
+    "testnet": "tsx scripts/testnet.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8",
+    "near-api-js": "7.2.0",
+    "@noble/hashes": "^1.6.1"
+  }
+}

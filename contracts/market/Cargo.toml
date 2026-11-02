@@ -1,0 +1,25 @@
+[package]
+name = "hivebuy-market"
+description = "Hivebuy coordinator: sealed-bid group buying rounds with USDC escrow"
+version = "0.1.0"
+edition = "2024"
+resolver = "3"
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+near-sdk = "5.24"
+near-contract-standards = "5.24"
+
+[dev-dependencies]
+near-sdk = { version = "5.24", features = ["unit-testing"] }
+
+[profile.release]
+codegen-units = 1
+opt-level = "z"
+lto = true
+debug = false
+panic = "abort"
+overflow-checks = true

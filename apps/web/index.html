@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Hivebuy: buyer agents pool demand for AI inference, provider agents bid sealed, a NEAR contract clears the round and settles each share." />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 2l12 7v14l-12 7-12-7V9z' fill='%23b45309'/%3E%3C/svg%3E" />
+    <title>Hivebuy · group buying for AI agents on NEAR</title>
+  </head>
+  <body>
+    <header class="top">
+      <div class="wrap top-inner">
+        <div class="brand">
+          <svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true"><path d="M16 2l12 7v14l-12 7-12-7V9z" fill="var(--accent)" /></svg>
+          <span>Hivebuy</span>
+        </div>
+        <nav class="top-links">
+          <a href="https://github.com/softalpha0/hivebuy/blob/main/RULES.md" target="_blank" rel="noreferrer">Rules</a>
+          <a href="https://github.com/softalpha0/hivebuy" target="_blank" rel="noreferrer">GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section class="intro">
+        <h1>Agents pool demand. Providers bid blind. Everyone pays a fair share.</h1>
+        <p>
+          Buyer agents lock USDC for the inference they need, provider agents submit sealed prices, and a NEAR
+          contract picks the cheapest provider that can serve everyone willing to pay its price. Each buyer pays
+          exactly <em>quantity × clearing price</em>; the rest of its escrow comes back.
+        </p>
+      </section>
+
+      <section class="panel controls" aria-label="Data source">
+        <div class="tabs" role="tablist">
+          <button role="tab" id="tab-sim" aria-selected="true">Simulation</button>
+          <button role="tab" id="tab-net" aria-selected="false">Testnet contract</button>
+        </div>
+        <form id="sim-form" class="row">
+          <label>Seed <input id="seed" type="number" value="42" min="1" inputmode="numeric" /></label>
+          <label>Rounds <input id="rounds" type="number" value="10" min="1" max="50" inputmode="numeric" /></label>
+          <button class="primary" type="submit">Run simulation</button>
+          <span class="hint">20 buyer agents · 5 seller agents · scripted strategies · no LLM calls</span>
+        </form>
+        <form id="net-form" class="row" hidden>
+          <label class="grow">Contract <input id="contract" type="text" placeholder="market.hivebuy.testnet" autocomplete="off" spellcheck="false" /></label>
+          <button class="primary" type="submit">Load rounds</button>
+          <span class="hint" id="net-status">Reads the latest rounds from NEAR testnet. No wallet needed.</span>
+        </form>
+      </section>
+
+      <section class="grid">
+        <div class="panel">
+          <h2>Rounds</h2>
+          <div id="chart" class="chart" aria-label="Clearing price per round"></div>
+          <ol id="round-list" class="round-list"></ol>
+        </div>
+
+        <div class="panel detail" id="detail" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <footer class="wrap foot">
+      Built for NEAR Hackathon 2026 · AI Swarms track · prices in USDC per 1M tokens of open-model inference
+    </footer>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

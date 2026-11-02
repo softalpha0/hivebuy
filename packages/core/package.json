@@ -1,0 +1,10 @@
+{
+  "name": "@hivebuy/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts",
+  "dependencies": {
+    "@noble/hashes": "^1.6.1"
+  }
+}
