@@ -38,6 +38,15 @@ function runSim() {
   select(0, true);
 }
 
+/** Buttons in the landing sections: jump to a live testnet round (or the latest one). */
+async function gotoRound(target: string) {
+  setTab(true);
+  await loadNet();
+  const i = target === 'latest' ? rounds.length - 1 : rounds.findIndex((r) => r.id === Number(target) && r.source === 'testnet');
+  if (i >= 0) select(i, false);
+  $('detail').scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' });
+}
+
 async function loadNet() {
   const contract = $<HTMLInputElement>('contract').value.trim();
   const status = $('net-status');
@@ -536,6 +545,8 @@ document.addEventListener('click', (e) => {
   const pick = target.closest('.round-row[data-i]');
   if (pick) select(Number(pick.getAttribute('data-i')), false);
   if (target.closest('#replay')) select(selected, true);
+  const go = target.closest('[data-goto]');
+  if (go) void gotoRound(go.getAttribute('data-goto')!);
 });
 
 const params = new URLSearchParams(location.search);

@@ -66,6 +66,124 @@
 
         <article class="card detail" id="detail" aria-live="polite"></article>
       </section>
+
+      <!-- 01 How it works: numbered steps (Land-book), mono section numbers (Beautiful UI) -->
+      <section class="lp" id="how" aria-labelledby="how-title">
+        <header class="lp-head">
+          <span class="lp-num">01</span>
+          <div>
+            <h2 id="how-title">How it works</h2>
+            <p>One round, three moves. Real numbers from round 3 on NEAR testnet.</p>
+          </div>
+        </header>
+        <ol class="steps3">
+          <li class="card">
+            <span class="lp-step">Step 1</span>
+            <h3>Buyers pool demand</h3>
+            <p>Each buyer agent decides how many units it needs and the most it will pay, then locks that amount of USDC in the contract.</p>
+            <code class="lp-code">buyer-3 locks 8 × 1.87 = 14.96 USDC</code>
+          </li>
+          <li class="card">
+            <span class="lp-step">Step 2</span>
+            <h3>Providers bid blind</h3>
+            <p>Provider agents see the pooled demand and post only a hash of their price, backed by a NEAR bond. Nobody can copy anyone.</p>
+            <code class="lp-code">seller-2 commits 385315d9c5ce…</code>
+          </li>
+          <li class="card">
+            <span class="lp-step">Step 3</span>
+            <h3>The contract clears</h3>
+            <p>After the reveal, the cheapest provider that can serve everyone at its price wins. Each buyer pays its share; the rest comes back.</p>
+            <code class="lp-code">seller-2 wins at 1.28 · 23.04 USDC paid</code>
+          </li>
+        </ol>
+        <!-- big-number proof row (Land-book) -->
+        <dl class="proof">
+          <div><dt>43</dt><dd>automated tests in Rust and TypeScript, both checked against the same test cases</dd></div>
+          <div><dt>25</dt><dd>agents per simulated round: 20 buyers and 5 providers, no AI calls needed</dd></div>
+          <div><dt>1</dt><dd>contract call books every payment and refund at once</dd></div>
+        </dl>
+      </section>
+
+      <!-- 02 Why NEAR: hairline feature grid (21st.dev features) -->
+      <section class="lp" id="near" aria-labelledby="near-title">
+        <header class="lp-head">
+          <span class="lp-num">02</span>
+          <div>
+            <h2 id="near-title">Why NEAR</h2>
+            <p>Every part of the market runs on something NEAR does natively.</p>
+          </div>
+        </header>
+        <div class="fgrid card">
+          <div class="fcell">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="3" /><path d="M5 20a7 7 0 0 1 14 0" /></svg>
+            <h3>An account per agent</h3>
+            <p><code>buyer-1.hivebuy.testnet</code>: every bid and payment traces back to one agent.</p>
+          </div>
+          <div class="fcell">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></svg>
+            <h3>Escrow in one call</h3>
+            <p><code>ft_transfer_call</code> locks USDC and joins the round together; a rejected join is refunded automatically.</p>
+          </div>
+          <div class="fcell">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 4v5c0 4-3 7-7 9-4-2-7-5-7-9V7z" /><path d="M9 12l2 2 4-4" /></svg>
+            <h3>Sealed bids with bonds</h3>
+            <p>A sha256 commitment plus a NEAR bond. Reveal a different price and the contract refuses; skip the reveal and the bond is lost.</p>
+          </div>
+          <div class="fcell">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16M14 6l6 6-6 6" /></svg>
+            <h3>Settled in one step</h3>
+            <p>One <code>clear()</code> books every payment and refund, so a round can never settle halfway.</p>
+          </div>
+          <div class="fcell">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" /></svg>
+            <h3>Private AI decisions</h3>
+            <p>Agents think with a model on NEAR AI Cloud that runs in a secure enclave. The API key never leaves the operator's machine.</p>
+          </div>
+          <div class="fcell">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="2.5" /><circle cx="18" cy="6" r="2.5" /><circle cx="18" cy="18" r="2.5" /><path d="M8.3 11l7.4-3.8M8.3 13l7.4 3.8" /></svg>
+            <h3>Ready for NEAR Intents</h3>
+            <p>Each payment becomes a signed <code>transfer</code> intent, already accepted by <code>simulate_intents</code> on <code>intents.near</code>.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 03 The agents think: thinking / recommendation cards (Beautiful UI) -->
+      <section class="lp" id="agents" aria-labelledby="agents-title">
+        <header class="lp-head">
+          <span class="lp-num">03</span>
+          <div>
+            <h2 id="agents-title">The agents think for themselves</h2>
+            <p>Unedited reasoning from live rounds, written by <code>z-ai/glm-5.3-flash</code> on NEAR AI Cloud.</p>
+          </div>
+        </header>
+        <div class="quotes">
+          <figure class="card quote">
+            <div class="q-head"><span class="spark" aria-hidden="true">✦</span> Thought before bidding <span class="pill ok">Won</span></div>
+            <blockquote>“At 1.29 all 31 demanded units clear (every buyer max_price ≥ 1.29), capacity 31 exactly covers demand so I win the round at 1.29…”</blockquote>
+            <figcaption><b>seller-2</b> · round 2 · bid 1.29 for exactly 31 units <button class="link" type="button" data-goto="2">See round 2 →</button></figcaption>
+          </figure>
+          <figure class="card quote">
+            <div class="q-head"><span class="spark" aria-hidden="true">✦</span> Thought before bidding <span class="pill">Lost</span></div>
+            <blockquote>“Demand is highly price-inelastic: 23 of 31 units accept up to 1.47+, and only the 6 units capped at 1.29 drop out above that.”</blockquote>
+            <figcaption><b>seller-1</b> · round 2 · gambled on 1.46 and lost to 1.29 <button class="link" type="button" data-goto="2">See round 2 →</button></figcaption>
+          </figure>
+          <figure class="card quote">
+            <div class="q-head"><span class="spark" aria-hidden="true">✦</span> Thought before joining <span class="pill">Left out</span></div>
+            <blockquote>“Since my value is 1.26 and last round cleared at 1.29, I cap my bid at value to avoid overpaying.”</blockquote>
+            <figcaption><b>buyer-5</b> · round 3 · max 1.26, round cleared at 1.28, fully refunded <button class="link" type="button" data-goto="3">See round 3 →</button></figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- Closing call to action: big centred headline + pill buttons (EasyUI) -->
+      <section class="cta card" aria-labelledby="cta-title">
+        <h2 id="cta-title">Agents shouldn't have to buy alone.</h2>
+        <p>Watch real AI agents pool demand and settle on NEAR testnet, or read every line of the market.</p>
+        <div class="cta-actions">
+          <button class="primary" type="button" data-goto="latest">See live AI rounds</button>
+          <a class="ghost-link" href="https://github.com/softalpha0/hivebuy" target="_blank" rel="noreferrer">Read the code ↗</a>
+        </div>
+      </section>
     </main>
 
     <footer class="wrap foot">
