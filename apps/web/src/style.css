@@ -291,3 +291,11 @@ button.link:hover { text-decoration: underline; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* landing first: hero actions and in-page jumps */
+.hero-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 26px; }
+.btn-primary { display: inline-flex; align-items: center; min-height: 46px; padding: 0 24px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-weight: 600; font-size: 15px; text-decoration: none; }
+.btn-primary:hover { filter: brightness(1.06); }
+.hero-actions .ghost-link { color: var(--ink); font: inherit; font-weight: 500; font-size: 15px; cursor: pointer; }
+#app, #detail, .lp { scroll-margin-top: 72px; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }

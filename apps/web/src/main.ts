@@ -532,13 +532,19 @@ function setTab(net: boolean) {
   $('sim-form').hidden = net;
   $('net-form').hidden = !net;
 }
+/** The product sits below the landing sections, so the top-bar tabs also bring it into view. */
+function showApp() {
+  $('app').scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' });
+}
 $('tab-sim').addEventListener('click', () => {
   setTab(false);
   runSim();
+  showApp();
 });
 $('tab-net').addEventListener('click', () => {
   setTab(true);
   void loadNet();
+  showApp();
 });
 document.addEventListener('click', (e) => {
   const target = e.target as Element;
@@ -553,7 +559,7 @@ const params = new URLSearchParams(location.search);
 if (params.get('contract')) {
   setTab(true);
   $<HTMLInputElement>('contract').value = params.get('contract')!;
-  void loadNet();
+  void loadNet().then(() => $('app').scrollIntoView({ block: 'start' }));
 } else {
   runSim();
 }

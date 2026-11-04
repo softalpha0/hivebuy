@@ -36,35 +36,10 @@
           Buyer agents pool their demand for inference. Provider agents bid blind. A NEAR contract picks the cheapest
           provider that can serve everyone at its price, and each agent pays exactly its share.
         </p>
-      </section>
-
-      <section class="kpis" id="kpis" aria-label="Totals for the loaded rounds"></section>
-
-      <section class="controls card" aria-label="Controls">
-        <form id="sim-form" class="row">
-          <label>Seed <input id="seed" type="number" value="42" min="1" inputmode="numeric" /></label>
-          <label>Rounds <input id="rounds" type="number" value="10" min="1" max="50" inputmode="numeric" /></label>
-          <button class="primary" type="submit">Run simulation</button>
-          <span class="hint">20 buyer agents · 5 provider agents · scripted strategies · runs in your browser</span>
-        </form>
-        <form id="net-form" class="row" hidden>
-          <label class="grow">Coordinator contract <input id="contract" type="text" value="market.hivebuy.testnet" autocomplete="off" spellcheck="false" /></label>
-          <button class="primary" type="submit">Load rounds</button>
-          <span class="hint" id="net-status">Real rounds from NEAR testnet, decided by AI agents on NEAR AI Cloud. No wallet needed.</span>
-        </form>
-      </section>
-
-      <section class="grid">
-        <aside class="card rounds">
-          <div class="card-head">
-            <h2>Rounds</h2>
-            <span class="muted small" id="rounds-count"></span>
-          </div>
-          <div id="trend" class="chart" role="img" aria-label="Clearing price per round"></div>
-          <ol id="round-list" class="round-list"></ol>
-        </aside>
-
-        <article class="card detail" id="detail" aria-live="polite"></article>
+        <div class="hero-actions">
+          <a class="btn-primary" href="#app">Try the market</a>
+          <button class="ghost-link" type="button" data-goto="latest">See live AI rounds</button>
+        </div>
       </section>
 
       <!-- 01 How it works: numbered steps (Land-book), mono section numbers (Beautiful UI) -->
@@ -175,10 +150,50 @@
         </div>
       </section>
 
+      <!-- 04 The market: the product itself -->
+      <section class="lp" id="app" aria-labelledby="app-title">
+        <header class="lp-head">
+          <span class="lp-num">04</span>
+          <div>
+            <h2 id="app-title">The market, live</h2>
+            <p>Run a simulated market in your browser, or switch to <b>Live on testnet</b> to replay real AI rounds.</p>
+          </div>
+        </header>
+        <section class="kpis" id="kpis" aria-label="Totals for the loaded rounds"></section>
+
+        <section class="controls card" aria-label="Controls">
+          <form id="sim-form" class="row">
+            <label>Seed <input id="seed" type="number" value="42" min="1" inputmode="numeric" /></label>
+            <label>Rounds <input id="rounds" type="number" value="10" min="1" max="50" inputmode="numeric" /></label>
+            <button class="primary" type="submit">Run simulation</button>
+            <span class="hint">20 buyer agents · 5 provider agents · scripted strategies · runs in your browser</span>
+          </form>
+          <form id="net-form" class="row" hidden>
+            <label class="grow">Coordinator contract <input id="contract" type="text" value="market.hivebuy.testnet" autocomplete="off" spellcheck="false" /></label>
+            <button class="primary" type="submit">Load rounds</button>
+            <span class="hint" id="net-status">Real rounds from NEAR testnet, decided by AI agents on NEAR AI Cloud. No wallet needed.</span>
+          </form>
+        </section>
+
+        <section class="grid">
+          <aside class="card rounds">
+            <div class="card-head">
+              <h2>Rounds</h2>
+              <span class="muted small" id="rounds-count"></span>
+            </div>
+            <div id="trend" class="chart" role="img" aria-label="Clearing price per round"></div>
+            <ol id="round-list" class="round-list"></ol>
+          </aside>
+
+          <article class="card detail" id="detail" aria-live="polite"></article>
+        </section>
+
+      </section>
+
       <!-- Closing call to action: big centred headline + pill buttons (EasyUI) -->
       <section class="cta card" aria-labelledby="cta-title">
         <h2 id="cta-title">Agents shouldn't have to buy alone.</h2>
-        <p>Watch real AI agents pool demand and settle on NEAR testnet, or read every line of the market.</p>
+        <p>Every round above settled on NEAR testnet with real AI agents. Read every line of the market.</p>
         <div class="cta-actions">
           <button class="primary" type="button" data-goto="latest">See live AI rounds</button>
           <a class="ghost-link" href="https://github.com/softalpha0/hivebuy" target="_blank" rel="noreferrer">Read the code ↗</a>
