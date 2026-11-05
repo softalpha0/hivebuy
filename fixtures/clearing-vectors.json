@@ -12,120 +12,696 @@
   ],
   "clearing": [
     {
-      "name": "worked example from RULES.md",
+      "name": "worked example from RULES.md: two providers split the order",
       "buyers": [
-        { "id": "a", "qty": 10, "max_price": "2000000" },
-        { "id": "b", "qty": 5, "max_price": "1500000" },
-        { "id": "c", "qty": 20, "max_price": "1200000" }
+        {
+          "id": "a",
+          "qty": 10,
+          "max_price": "2000000"
+        },
+        {
+          "id": "b",
+          "qty": 15,
+          "max_price": "1500000"
+        },
+        {
+          "id": "c",
+          "qty": 20,
+          "max_price": "1200000"
+        }
       ],
       "sellers": [
-        { "id": "s1", "price": "1100000", "capacity": 20, "commit_index": 0 },
-        { "id": "s2", "price": "1400000", "capacity": 40, "commit_index": 1 },
-        { "id": "s3", "price": "1900000", "capacity": 100, "commit_index": 2 }
+        {
+          "id": "s1",
+          "price": "1100000",
+          "capacity": 20,
+          "commit_index": 0
+        },
+        {
+          "id": "s2",
+          "price": "1400000",
+          "capacity": 15,
+          "commit_index": 1
+        },
+        {
+          "id": "s3",
+          "price": "1900000",
+          "capacity": 100,
+          "commit_index": 2
+        }
       ],
       "expected": {
         "status": "cleared",
-        "winner": "s2",
         "price": "1400000",
+        "demand": 25,
+        "price_set_by": "s2",
+        "fills": [
+          {
+            "id": "s1",
+            "units": 20,
+            "payout": "28000000"
+          },
+          {
+            "id": "s2",
+            "units": 5,
+            "payout": "7000000"
+          }
+        ],
         "settlements": [
-          { "id": "a", "included": true, "pay": "14000000", "refund": "6000000" },
-          { "id": "b", "included": true, "pay": "7000000", "refund": "500000" },
-          { "id": "c", "included": false, "pay": "0", "refund": "24000000" }
+          {
+            "id": "a",
+            "included": true,
+            "pay": "14000000",
+            "refund": "6000000"
+          },
+          {
+            "id": "b",
+            "included": true,
+            "pay": "21000000",
+            "refund": "1500000"
+          },
+          {
+            "id": "c",
+            "included": false,
+            "pay": "0",
+            "refund": "24000000"
+          }
+        ]
+      }
+    },
+    {
+      "name": "price rises past the cheapest ask; the cheapest provider still sells everything",
+      "buyers": [
+        {
+          "id": "a",
+          "qty": 10,
+          "max_price": "2000000"
+        },
+        {
+          "id": "b",
+          "qty": 5,
+          "max_price": "1500000"
+        },
+        {
+          "id": "c",
+          "qty": 20,
+          "max_price": "1200000"
+        }
+      ],
+      "sellers": [
+        {
+          "id": "s1",
+          "price": "1100000",
+          "capacity": 20,
+          "commit_index": 0
+        },
+        {
+          "id": "s2",
+          "price": "1400000",
+          "capacity": 40,
+          "commit_index": 1
+        },
+        {
+          "id": "s3",
+          "price": "1900000",
+          "capacity": 100,
+          "commit_index": 2
+        }
+      ],
+      "expected": {
+        "status": "cleared",
+        "price": "1400000",
+        "demand": 15,
+        "price_set_by": "s2",
+        "fills": [
+          {
+            "id": "s1",
+            "units": 15,
+            "payout": "21000000"
+          }
+        ],
+        "settlements": [
+          {
+            "id": "a",
+            "included": true,
+            "pay": "14000000",
+            "refund": "6000000"
+          },
+          {
+            "id": "b",
+            "included": true,
+            "pay": "7000000",
+            "refund": "500000"
+          },
+          {
+            "id": "c",
+            "included": false,
+            "pay": "0",
+            "refund": "24000000"
+          }
+        ]
+      }
+    },
+    {
+      "name": "a buyer's max price can be the clearing price",
+      "buyers": [
+        {
+          "id": "x",
+          "qty": 3,
+          "max_price": "1680000"
+        },
+        {
+          "id": "y",
+          "qty": 8,
+          "max_price": "1570000"
+        },
+        {
+          "id": "z",
+          "qty": 8,
+          "max_price": "1450000"
+        },
+        {
+          "id": "w",
+          "qty": 8,
+          "max_price": "1340000"
+        },
+        {
+          "id": "v",
+          "qty": 8,
+          "max_price": "1330000"
+        },
+        {
+          "id": "u",
+          "qty": 6,
+          "max_price": "1250000"
+        }
+      ],
+      "sellers": [
+        {
+          "id": "s2",
+          "price": "1450000",
+          "capacity": 17,
+          "commit_index": 0
+        },
+        {
+          "id": "s1",
+          "price": "1030000",
+          "capacity": 35,
+          "commit_index": 1
+        }
+      ],
+      "expected": {
+        "status": "cleared",
+        "price": "1330000",
+        "demand": 35,
+        "price_set_by": "v",
+        "fills": [
+          {
+            "id": "s1",
+            "units": 35,
+            "payout": "46550000"
+          }
+        ],
+        "settlements": [
+          {
+            "id": "x",
+            "included": true,
+            "pay": "3990000",
+            "refund": "1050000"
+          },
+          {
+            "id": "y",
+            "included": true,
+            "pay": "10640000",
+            "refund": "1920000"
+          },
+          {
+            "id": "z",
+            "included": true,
+            "pay": "10640000",
+            "refund": "960000"
+          },
+          {
+            "id": "w",
+            "included": true,
+            "pay": "10640000",
+            "refund": "80000"
+          },
+          {
+            "id": "v",
+            "included": true,
+            "pay": "10640000",
+            "refund": "0"
+          },
+          {
+            "id": "u",
+            "included": false,
+            "pay": "0",
+            "refund": "7500000"
+          }
         ]
       }
     },
     {
       "name": "cheapest seller covers everyone",
       "buyers": [
-        { "id": "a", "qty": 3, "max_price": "1000000" },
-        { "id": "b", "qty": 4, "max_price": "900000" }
+        {
+          "id": "a",
+          "qty": 3,
+          "max_price": "1000000"
+        },
+        {
+          "id": "b",
+          "qty": 4,
+          "max_price": "900000"
+        }
       ],
       "sellers": [
-        { "id": "s1", "price": "800000", "capacity": 7, "commit_index": 0 },
-        { "id": "s2", "price": "850000", "capacity": 100, "commit_index": 1 }
+        {
+          "id": "s1",
+          "price": "800000",
+          "capacity": 7,
+          "commit_index": 0
+        },
+        {
+          "id": "s2",
+          "price": "850000",
+          "capacity": 100,
+          "commit_index": 1
+        }
       ],
       "expected": {
         "status": "cleared",
-        "winner": "s1",
         "price": "800000",
+        "demand": 7,
+        "price_set_by": "s1",
+        "fills": [
+          {
+            "id": "s1",
+            "units": 7,
+            "payout": "5600000"
+          }
+        ],
         "settlements": [
-          { "id": "a", "included": true, "pay": "2400000", "refund": "600000" },
-          { "id": "b", "included": true, "pay": "3200000", "refund": "400000" }
+          {
+            "id": "a",
+            "included": true,
+            "pay": "2400000",
+            "refund": "600000"
+          },
+          {
+            "id": "b",
+            "included": true,
+            "pay": "3200000",
+            "refund": "400000"
+          }
         ]
       }
     },
     {
       "name": "tie on price goes to the earlier commit",
-      "buyers": [{ "id": "a", "qty": 5, "max_price": "1000000" }],
+      "buyers": [
+        {
+          "id": "a",
+          "qty": 5,
+          "max_price": "1000000"
+        }
+      ],
       "sellers": [
-        { "id": "late", "price": "900000", "capacity": 10, "commit_index": 1 },
-        { "id": "early", "price": "900000", "capacity": 10, "commit_index": 0 }
+        {
+          "id": "late",
+          "price": "900000",
+          "capacity": 10,
+          "commit_index": 1
+        },
+        {
+          "id": "early",
+          "price": "900000",
+          "capacity": 10,
+          "commit_index": 0
+        }
       ],
       "expected": {
         "status": "cleared",
-        "winner": "early",
         "price": "900000",
-        "settlements": [{ "id": "a", "included": true, "pay": "4500000", "refund": "500000" }]
+        "demand": 5,
+        "price_set_by": "early",
+        "fills": [
+          {
+            "id": "early",
+            "units": 5,
+            "payout": "4500000"
+          }
+        ],
+        "settlements": [
+          {
+            "id": "a",
+            "included": true,
+            "pay": "4500000",
+            "refund": "500000"
+          }
+        ]
       }
     },
     {
       "name": "buyer max exactly equal to price is included",
       "buyers": [
-        { "id": "a", "qty": 2, "max_price": "1000000" },
-        { "id": "b", "qty": 2, "max_price": "999999" }
+        {
+          "id": "a",
+          "qty": 2,
+          "max_price": "1000000"
+        },
+        {
+          "id": "b",
+          "qty": 2,
+          "max_price": "999999"
+        }
       ],
-      "sellers": [{ "id": "s1", "price": "1000000", "capacity": 2, "commit_index": 0 }],
+      "sellers": [
+        {
+          "id": "s1",
+          "price": "1000000",
+          "capacity": 2,
+          "commit_index": 0
+        }
+      ],
       "expected": {
         "status": "cleared",
-        "winner": "s1",
         "price": "1000000",
+        "demand": 2,
+        "price_set_by": "s1",
+        "fills": [
+          {
+            "id": "s1",
+            "units": 2,
+            "payout": "2000000"
+          }
+        ],
         "settlements": [
-          { "id": "a", "included": true, "pay": "2000000", "refund": "0" },
-          { "id": "b", "included": false, "pay": "0", "refund": "1999998" }
+          {
+            "id": "a",
+            "included": true,
+            "pay": "2000000",
+            "refund": "0"
+          },
+          {
+            "id": "b",
+            "included": false,
+            "pay": "0",
+            "refund": "1999998"
+          }
         ]
       }
     },
     {
-      "name": "no seller has enough capacity: round fails",
-      "buyers": [{ "id": "a", "qty": 50, "max_price": "2000000" }],
+      "name": "two providers share a round neither could serve alone",
+      "buyers": [
+        {
+          "id": "a",
+          "qty": 50,
+          "max_price": "2000000"
+        }
+      ],
       "sellers": [
-        { "id": "s1", "price": "1000000", "capacity": 10, "commit_index": 0 },
-        { "id": "s2", "price": "1500000", "capacity": 49, "commit_index": 1 }
+        {
+          "id": "s1",
+          "price": "1000000",
+          "capacity": 10,
+          "commit_index": 0
+        },
+        {
+          "id": "s2",
+          "price": "1500000",
+          "capacity": 49,
+          "commit_index": 1
+        }
       ],
       "expected": {
-        "status": "failed",
-        "winner": null,
-        "price": null,
-        "settlements": [{ "id": "a", "included": false, "pay": "0", "refund": "100000000" }]
+        "status": "cleared",
+        "price": "1500000",
+        "demand": 50,
+        "price_set_by": "s2",
+        "fills": [
+          {
+            "id": "s1",
+            "units": 10,
+            "payout": "15000000"
+          },
+          {
+            "id": "s2",
+            "units": 40,
+            "payout": "60000000"
+          }
+        ],
+        "settlements": [
+          {
+            "id": "a",
+            "included": true,
+            "pay": "75000000",
+            "refund": "25000000"
+          }
+        ]
       }
     },
     {
       "name": "every price above every buyer max: round fails",
-      "buyers": [{ "id": "a", "qty": 1, "max_price": "500000" }],
-      "sellers": [{ "id": "s1", "price": "600000", "capacity": 10, "commit_index": 0 }],
+      "buyers": [
+        {
+          "id": "a",
+          "qty": 1,
+          "max_price": "500000"
+        }
+      ],
+      "sellers": [
+        {
+          "id": "s1",
+          "price": "600000",
+          "capacity": 10,
+          "commit_index": 0
+        }
+      ],
       "expected": {
         "status": "failed",
-        "winner": null,
         "price": null,
-        "settlements": [{ "id": "a", "included": false, "pay": "0", "refund": "500000" }]
+        "demand": 0,
+        "price_set_by": null,
+        "fills": [],
+        "settlements": [
+          {
+            "id": "a",
+            "included": false,
+            "pay": "0",
+            "refund": "500000"
+          }
+        ]
       }
     },
     {
       "name": "no reveals: round fails",
-      "buyers": [{ "id": "a", "qty": 1, "max_price": "500000" }],
+      "buyers": [
+        {
+          "id": "a",
+          "qty": 1,
+          "max_price": "500000"
+        }
+      ],
       "sellers": [],
       "expected": {
         "status": "failed",
-        "winner": null,
         "price": null,
-        "settlements": [{ "id": "a", "included": false, "pay": "0", "refund": "500000" }]
+        "demand": 0,
+        "price_set_by": null,
+        "fills": [],
+        "settlements": [
+          {
+            "id": "a",
+            "included": false,
+            "pay": "0",
+            "refund": "500000"
+          }
+        ]
       }
     },
     {
       "name": "no buyers: round fails",
       "buyers": [],
-      "sellers": [{ "id": "s1", "price": "600000", "capacity": 10, "commit_index": 0 }],
-      "expected": { "status": "failed", "winner": null, "price": null, "settlements": [] }
+      "sellers": [
+        {
+          "id": "s1",
+          "price": "600000",
+          "capacity": 10,
+          "commit_index": 0
+        }
+      ],
+      "expected": {
+        "status": "failed",
+        "price": null,
+        "demand": 0,
+        "price_set_by": null,
+        "fills": [],
+        "settlements": []
+      }
+    },
+    {
+      "name": "not enough capacity even combined: round fails",
+      "buyers": [
+        {
+          "id": "a",
+          "qty": 50,
+          "max_price": "2000000"
+        }
+      ],
+      "sellers": [
+        {
+          "id": "s1",
+          "price": "1000000",
+          "capacity": 10,
+          "commit_index": 0
+        },
+        {
+          "id": "s2",
+          "price": "1500000",
+          "capacity": 30,
+          "commit_index": 1
+        }
+      ],
+      "expected": {
+        "status": "failed",
+        "price": null,
+        "demand": 0,
+        "price_set_by": null,
+        "fills": [],
+        "settlements": [
+          {
+            "id": "a",
+            "included": false,
+            "pay": "0",
+            "refund": "100000000"
+          }
+        ]
+      }
+    },
+    {
+      "name": "three providers fill in ask order",
+      "buyers": [
+        {
+          "id": "a",
+          "qty": 12,
+          "max_price": "1300000"
+        },
+        {
+          "id": "b",
+          "qty": 8,
+          "max_price": "1250000"
+        }
+      ],
+      "sellers": [
+        {
+          "id": "s3",
+          "price": "1200000",
+          "capacity": 12,
+          "commit_index": 2
+        },
+        {
+          "id": "s1",
+          "price": "1000000",
+          "capacity": 5,
+          "commit_index": 0
+        },
+        {
+          "id": "s2",
+          "price": "1100000",
+          "capacity": 4,
+          "commit_index": 1
+        }
+      ],
+      "expected": {
+        "status": "cleared",
+        "price": "1200000",
+        "demand": 20,
+        "price_set_by": "s3",
+        "fills": [
+          {
+            "id": "s1",
+            "units": 5,
+            "payout": "6000000"
+          },
+          {
+            "id": "s2",
+            "units": 4,
+            "payout": "4800000"
+          },
+          {
+            "id": "s3",
+            "units": 11,
+            "payout": "13200000"
+          }
+        ],
+        "settlements": [
+          {
+            "id": "a",
+            "included": true,
+            "pay": "14400000",
+            "refund": "1200000"
+          },
+          {
+            "id": "b",
+            "included": true,
+            "pay": "9600000",
+            "refund": "400000"
+          }
+        ]
+      }
+    },
+    {
+      "name": "tied asks both count toward supply; earlier commit fills first",
+      "buyers": [
+        {
+          "id": "a",
+          "qty": 30,
+          "max_price": "1000000"
+        }
+      ],
+      "sellers": [
+        {
+          "id": "late",
+          "price": "900000",
+          "capacity": 20,
+          "commit_index": 1
+        },
+        {
+          "id": "early",
+          "price": "900000",
+          "capacity": 15,
+          "commit_index": 0
+        }
+      ],
+      "expected": {
+        "status": "cleared",
+        "price": "900000",
+        "demand": 30,
+        "price_set_by": "early",
+        "fills": [
+          {
+            "id": "early",
+            "units": 15,
+            "payout": "13500000"
+          },
+          {
+            "id": "late",
+            "units": 15,
+            "payout": "13500000"
+          }
+        ],
+        "settlements": [
+          {
+            "id": "a",
+            "included": true,
+            "pay": "27000000",
+            "refund": "3000000"
+          }
+        ]
+      }
     }
   ]
 }

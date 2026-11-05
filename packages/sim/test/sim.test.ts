@@ -38,7 +38,7 @@ describe('simulation', () => {
 
   it('conserves escrow in every round', () => {
     for (const r of run.rounds) {
-      expect(r.stats.paidToWinner + r.stats.refunded).toBe(r.stats.escrowTotal);
+      expect(r.stats.paidToProviders + r.stats.refunded).toBe(r.stats.escrowTotal);
     }
   });
 

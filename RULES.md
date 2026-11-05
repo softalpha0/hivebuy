@@ -34,25 +34,33 @@ Limits per round: at most 50 buyers and 10 sellers. One join per buyer, one comm
 
 ## 4. Clearing rule
 
-Inputs: buyers `(qty_i, max_i)` and revealed sellers `(price_j, capacity_j)`.
+Inputs: buyers `(qty_i, max_i)` and revealed sellers `(price_j, capacity_j)`. Several sellers can win a round; everyone trades at one price.
 
-1. Sort revealed sellers by `price` ascending; ties go to the earlier commit.
-2. For each seller `s` in that order:
-   - `demand(s)` = sum of `qty_i` over buyers with `max_i >= s.price`.
-   - If `demand(s) > 0` and `s.capacity >= demand(s)`: **`s` wins at `s.price`**. Stop.
-3. If no seller qualifies, the round **fails**.
+1. **Candidate prices**: every revealed `price_j`, plus every `max_i` at or above the cheapest revealed price. Sorted ascending.
+2. For each candidate `p`, cheapest first:
+   - `demand(p)` = sum of `qty_i` over buyers with `max_i >= p`.
+   - `supply(p)` = sum of `capacity_j` over sellers with `price_j <= p`.
+   - If `demand(p) = 0`: stop, the round **fails** (no buyer pays this much).
+   - If `supply(p) >= demand(p)`: **`p` is the clearing price**. Stop.
+3. If no candidate clears, the round **fails**.
+4. **Fills**: the `demand(p)` units go to sellers with `price_j <= p`, cheapest first (ties: earlier commit), each up to its capacity. A seller can be partly filled, or get nothing if cheaper sellers already cover every unit.
 
-Result: one winner, one clearing price `p`, and the included buyers (those with `max_i >= p`). Each included buyer pays exactly `qty_i × p`.
+Result: one clearing price `p`; the included buyers (those with `max_i >= p`), each paying exactly `qty_i × p`; and the fills, each seller paid `units × p`. What buyers pay always equals what sellers earn. The price is never higher than under a one-winner rule (cheapest single seller that can serve everyone at its own price).
 
-**Worked example.** Buyers: A (10 @ ≤2.00), B (5 @ ≤1.50), C (20 @ ≤1.20). Sellers reveal: S1 (1.10, cap 20), S2 (1.40, cap 40), S3 (1.90, cap 100).
-- S1 @ 1.10: demand = 35 > 20 → skip.
-- S2 @ 1.40: demand = A 10 + B 5 = 15 ≤ 40 → **S2 wins at 1.40**. A pays 14.00 (refund 6.00), B pays 7.00 (refund 0.50), C pays nothing (refund 24.00).
+**Worked example.** Buyers: A (10 @ ≤2.00), B (15 @ ≤1.50), C (20 @ ≤1.20). Sellers reveal: S1 (1.10, cap 20), S2 (1.40, cap 15), S3 (1.90, cap 100).
+- 1.10 (S1's ask): demand 45, supply 20 → not enough.
+- 1.20 (C's max): demand 45, supply 20 → not enough.
+- 1.40 (S2's ask): demand A 10 + B 15 = 25, supply 20 + 15 = 35 → **clears at 1.40**.
+- Fills: S1 sells 20 (earns 28.00), S2 sells 5 (earns 7.00). A pays 14.00 (refund 6.00), B pays 21.00 (refund 1.50), C pays nothing (refund 24.00).
+
+With one winner only, S1 and S2 would both be too small and S3 would win at 1.90, serving just A. Sharing the round serves 25 units at 1.40 instead of 10 units at 1.90.
 
 ## 5. Settlement
 
 Settlement happens inside the coordinator in one step, so it cannot partly fail:
 
-- Included buyer: `qty_i × p` is credited to the winner; `escrow_i − qty_i × p` is credited back to the buyer.
+- Included buyer: `escrow_i − qty_i × p` is credited back to the buyer.
+- Each filled seller: `units_j × p` is credited to the seller. The contract checks that these add up to what the included buyers pay.
 - Excluded buyer: the full escrow is credited back.
 - Failed round: every buyer's full escrow is credited back.
 
@@ -60,8 +68,9 @@ Credits are withdrawn with `withdraw()`, which sends USDC to the caller. If the 
 
 ## 6. Bonds
 
-- A seller that commits but does not reveal **forfeits its bond** to the market treasury (stops price-fishing and griefing).
-- Every revealed seller gets its bond back at Clear, winner or not.
+- A seller that commits but does not reveal **forfeits its bond to the round's buyers**: their money was frozen for nothing, and the forfeit stops price-fishing and griefing.
+- The forfeited NEAR is split among every buyer in the round (included or not) in proportion to the units each one locked, rounded down; the few yoctoNEAR of rounding dust go to the market treasury. With no buyers, the whole bond goes to the treasury.
+- Every revealed seller gets its bond back at Clear, whether it sells or not.
 
 ## 7. Simulation mode
 
@@ -71,4 +80,4 @@ Credits are withdrawn with `withdraw()`, which sends USDC to the caller. If the 
 
 ## 8. NEAR Intents (mainnet-ready, dry run)
 
-NEAR Intents has no testnet. The live market therefore settles in the coordinator on testnet. For mainnet, `npm run intents:dry-run` turns a cleared round into one `transfer` intent per included buyer (`qty_i × p` USDC to the winner) and checks the batch against the real Verifier (`intents.near`) with `simulate_intents`, which changes no state.
+NEAR Intents has no testnet. The live market therefore settles in the coordinator on testnet. For mainnet, `npm run intents:dry-run` turns a cleared round into one signed intent per included buyer, paying `units × p` USDC to each seller that sold that buyer's units and checks the batch against the real Verifier (`intents.near`) with `simulate_intents`, which changes no state.

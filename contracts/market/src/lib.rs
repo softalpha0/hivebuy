@@ -2,7 +2,12 @@
 //!
 //! Buyers join by sending USDC with `ft_transfer_call` (held in escrow), sellers
 //! commit a sealed price with a NEAR bond and reveal it later, and `clear` books
-//! every payment in one step. Credits are withdrawn with `withdraw`.
+//! every payment in one step. Several sellers can share a round at one clearing price.
+//! Credits are withdrawn with `withdraw`.
+//!
+//! Upgrade note (v2, several sellers per round): the stored `Round`/`Outcome` layout is
+//! unchanged so v1 rounds stay readable. Per-seller fills live under their own storage key
+//! and are merged into the `get_round` / `get_latest_rounds` views.
 
 pub mod clearing;
 
@@ -72,9 +77,34 @@ pub struct SettlementView {
     pub refund: U128,
 }
 
+/// Units a seller sells in a cleared round, paid at the clearing price.
+#[near(serializers = [borsh, json])]
+#[derive(Clone)]
+pub struct Fill {
+    pub account_id: AccountId,
+    pub units: u32,
+    pub payout: U128,
+}
+
+/// NEAR a buyer received from forfeited seller bonds.
+#[near(serializers = [borsh, json])]
+#[derive(Clone)]
+pub struct BondShare {
+    pub account_id: AccountId,
+    pub amount: U128,
+}
+
+/// Stored next to a v2 round under `fills_key(round_id)`.
+#[near(serializers = [borsh])]
+struct Fills {
+    fills: Vec<Fill>,
+    price_set_by: AccountId,
+}
+
 #[near(serializers = [borsh, json])]
 #[derive(Clone)]
 pub struct Outcome {
+    /// The cheapest seller that sells (v1: the only winner). See `RoundView::fills` for all of them.
     pub winner: Option<AccountId>,
     pub price: Option<U128>,
     pub demand: u32,
@@ -96,6 +126,19 @@ pub struct Round {
     pub sellers: Vec<SellerEntry>,
     pub status: RoundStatus,
     pub outcome: Option<Outcome>,
+}
+
+/// A round as returned by the views: the stored round plus every seller's fill.
+#[near(serializers = [json])]
+pub struct RoundView {
+    #[serde(flatten)]
+    pub round: Round,
+    /// Sellers that sell, cheapest first. Empty until the round clears.
+    pub fills: Vec<Fill>,
+    /// Who named the clearing price: a seller's ask (that seller may sell nothing) or a buyer's max.
+    pub price_set_by: Option<AccountId>,
+    /// Forfeited bonds paid to the round's buyers, in yoctoNEAR. Empty for rounds cleared before v2.1.
+    pub bond_shares: Vec<BondShare>,
 }
 
 #[near(serializers = [json])]
@@ -124,7 +167,7 @@ pub struct Market {
     next_round_id: u64,
     /// USDC each account can withdraw (payments to winners, refunds to buyers).
     credits: LookupMap<AccountId, u128>,
-    /// Forfeited seller bonds, in yoctoNEAR.
+    /// Rounding dust of forfeited bonds (v1: whole forfeited bonds), in yoctoNEAR.
     treasury: u128,
 }
 
@@ -288,16 +331,35 @@ impl Market {
                 refund: U128(s.refund),
             });
         }
-        let (winner, price, demand) = match result.winner {
-            Some((idx, price, demand)) => {
-                let winner = round.sellers[idx].account_id.clone();
-                self.add_credit(&winner, total_pay);
-                (Some(winner), Some(U128(price)), demand)
+        let (winner, price, demand) = match &result.cleared {
+            Some(c) => {
+                let fills: Vec<Fill> = c
+                    .fills
+                    .iter()
+                    .map(|f| Fill {
+                        account_id: round.sellers[f.seller].account_id.clone(),
+                        units: f.units,
+                        payout: U128(f.payout),
+                    })
+                    .collect();
+                let paid_out: u128 = fills.iter().map(|f| f.payout.0).sum();
+                require!(paid_out == total_pay, "Fills must add up to what buyers pay");
+                for f in &fills {
+                    self.add_credit(&f.account_id, f.payout.0);
+                }
+                let first = fills.first().map(|f| f.account_id.clone());
+                let price_set_by = match c.price_set_by {
+                    clearing::PriceSetBy::Seller(i) => round.sellers[i].account_id.clone(),
+                    clearing::PriceSetBy::Buyer(i) => round.buyers[i].account_id.clone(),
+                };
+                env::storage_write(&fills_key(round_id), &near_sdk::borsh::to_vec(&Fills { fills, price_set_by }).unwrap());
+                (first, Some(U128(c.price)), c.demand)
             }
             None => (None, None, 0),
         };
 
-        // Bonds: returned to every revealed seller, forfeited otherwise (RULES.md section 6).
+        // Bonds: returned to every revealed seller. An unrevealed bond is split among the
+        // round's buyers by units locked, since their money was frozen for nothing (RULES.md section 6).
         let mut forfeited: u128 = 0;
         for s in &round.sellers {
             if s.revealed.is_some() {
@@ -306,7 +368,19 @@ impl Market {
                 forfeited += s.bond.0;
             }
         }
-        self.treasury += forfeited;
+        let qtys: Vec<u32> = round.buyers.iter().map(|b| b.qty).collect();
+        let (shares, dust) = clearing::bond_shares(&qtys, forfeited);
+        let mut bond_shares = Vec::new();
+        for (buyer, share) in round.buyers.iter().zip(shares) {
+            if share > 0 {
+                Promise::new(buyer.account_id.clone()).transfer(NearToken::from_yoctonear(share)).detach();
+                bond_shares.push(BondShare { account_id: buyer.account_id.clone(), amount: U128(share) });
+            }
+        }
+        self.treasury += dust;
+        if !bond_shares.is_empty() {
+            env::storage_write(&bonds_key(round_id), &near_sdk::borsh::to_vec(&bond_shares).unwrap());
+        }
 
         let outcome = Outcome {
             winner,
@@ -374,17 +448,17 @@ impl Market {
         }
     }
 
-    pub fn get_round(&self, round_id: u64) -> Option<Round> {
-        self.rounds.get(&round_id).cloned()
+    pub fn get_round(&self, round_id: u64) -> Option<RoundView> {
+        self.rounds.get(&round_id).map(view_of)
     }
 
     /// Newest first, `limit` at most 20.
-    pub fn get_latest_rounds(&self, limit: u64) -> Vec<Round> {
+    pub fn get_latest_rounds(&self, limit: u64) -> Vec<RoundView> {
         let limit = limit.clamp(1, 20);
         (1..self.next_round_id)
             .rev()
             .take(limit as usize)
-            .filter_map(|id| self.rounds.get(&id).cloned())
+            .filter_map(|id| self.rounds.get(&id).map(view_of))
             .collect()
     }
 
@@ -441,6 +515,40 @@ impl FungibleTokenReceiver for Market {
         env::log_str(&format!("EVENT buyer_joined {} {sender_id}", join.round_id));
         PromiseOrValue::Value(U128(0))
     }
+}
+
+fn fills_key(round_id: u64) -> Vec<u8> {
+    [b"fills:".as_slice(), &round_id.to_le_bytes()].concat()
+}
+
+fn bonds_key(round_id: u64) -> Vec<u8> {
+    [b"bonds:".as_slice(), &round_id.to_le_bytes()].concat()
+}
+
+/// Merges the stored fills into a round. v1 rounds (cleared before the upgrade) had one
+/// seller take every unit, so their fill is rebuilt from the outcome.
+fn view_of(round: &Round) -> RoundView {
+    let stored: Option<Fills> = env::storage_read(&fills_key(round.id))
+        .map(|raw| near_sdk::borsh::from_slice(&raw).unwrap_or_else(|_| env::panic_str("Corrupt fills")));
+    let (fills, price_set_by) = match (stored, &round.outcome) {
+        (Some(f), _) => (f.fills, Some(f.price_set_by)),
+        (None, Some(o)) => match &o.winner {
+            Some(w) => (
+                vec![Fill {
+                    account_id: w.clone(),
+                    units: o.demand,
+                    payout: U128(o.settlements.iter().map(|s| s.pay.0).sum()),
+                }],
+                Some(w.clone()),
+            ),
+            None => (vec![], None),
+        },
+        (None, None) => (vec![], None),
+    };
+    let bond_shares: Vec<BondShare> = env::storage_read(&bonds_key(round.id))
+        .map(|raw| near_sdk::borsh::from_slice(&raw).unwrap_or_else(|_| env::panic_str("Corrupt bond shares")))
+        .unwrap_or_default();
+    RoundView { round: round.clone(), fills, price_set_by, bond_shares }
 }
 
 /// sha256("<round_id>:<seller_id>:<price>:<capacity>:<salt>") as lowercase hex (RULES.md section 3).

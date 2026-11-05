@@ -147,7 +147,9 @@ const SELLER_SCHEMA = {
 
 const RULES_SUMMARY =
   'Hivebuy market rules: buyers join with (qty, max_price) and lock qty × max_price USDC. Sellers submit sealed (price, capacity). ' +
-  'The contract checks sellers from cheapest up; the first whose capacity covers all units wanted by buyers whose max_price >= its price wins at that price. ' +
+  'The contract tries candidate prices (every seller price and every buyer max_price), cheapest first. It stops at the first price where the sellers asking that much or less ' +
+  'can together supply every unit wanted by buyers whose max_price >= that price. Units go to the cheapest sellers first, so several sellers can win, ' +
+  'and every winner is paid the same clearing price for each unit it sells. ' +
   'Each included buyer pays qty × clearing price and gets the rest of its escrow back. Excluded buyers get everything back. ' +
   'Answer only with the JSON object. Keep "reasoning" to one plain, complete sentence of at most 15 words.';
 

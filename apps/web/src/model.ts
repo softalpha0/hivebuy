@@ -1,4 +1,4 @@
-import type { Amount, Settlement } from '@hivebuy/core';
+import type { Amount, Fill, Settlement } from '@hivebuy/core';
 import type { SimRun } from '@hivebuy/sim';
 
 /** One round, whatever its source (local simulation or a testnet contract). */
@@ -15,8 +15,21 @@ export interface ViewRound {
     commitment: string;
     revealed: { price: Amount; capacity: number } | null;
   }[];
-  result: { winner: string | null; price: Amount | null; demand: number; settlements: Settlement[] } | null;
+  result: {
+    price: Amount | null;
+    demand: number;
+    /** Providers that sell, cheapest first (empty when the round failed). */
+    fills: Fill[];
+    priceSetBy: string | null;
+    settlements: Settlement[];
+  } | null;
+  /** Phase deadlines in ms since epoch (testnet rounds), for the live countdown. */
+  ends?: { join: number; commit: number; reveal: number };
   forfeited: string[];
+  /** Forfeited bonds paid to buyers (testnet rounds cleared by v2.1), in yoctoNEAR. */
+  bondShares?: { id: string; amount: bigint }[];
+  /** Seller bond for this round, in yoctoNEAR (testnet rounds). */
+  bond?: bigint;
   /** Published agent reasoning (testnet rounds run by scripts/testnet.ts). */
   notes?: { brain: string; byAgent: Record<string, { reasoning: string; source: string }> };
 }
@@ -36,8 +49,9 @@ export function fromSimulation(run: SimRun): ViewRound[] {
       revealed: s.revealed ? { price: s.price, capacity: s.capacity } : null,
     })),
     result: {
-      winner: r.result.winner,
       price: r.result.price,
+      fills: r.result.fills,
+      priceSetBy: r.result.priceSetBy,
       demand: r.result.demand,
       settlements: r.result.settlements,
     },

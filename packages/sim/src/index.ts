@@ -66,7 +66,7 @@ export interface RoundRecord {
     joined: number;
     demandAtClear: number;
     escrowTotal: Amount;
-    paidToWinner: Amount;
+    paidToProviders: Amount;
     refunded: Amount;
     /** Sum over included buyers of (max price − clearing price) × qty. */
     buyerSurplus: Amount;
@@ -206,7 +206,7 @@ export function runSimulation(input: SimConfig): SimRun {
     );
 
     const escrowTotal = orders.reduce((s, o) => s + o.escrow, 0n);
-    const paidToWinner = result.settlements.reduce((s, x) => s + x.pay, 0n);
+    const paidToProviders = result.settlements.reduce((s, x) => s + x.pay, 0n);
     const refunded = result.settlements.reduce((s, x) => s + x.refund, 0n);
     const buyerSurplus =
       result.status === 'cleared'
@@ -226,7 +226,7 @@ export function runSimulation(input: SimConfig): SimRun {
         joined: orders.length,
         demandAtClear: result.demand,
         escrowTotal,
-        paidToWinner,
+        paidToProviders,
         refunded,
         buyerSurplus,
       },

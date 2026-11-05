@@ -21,7 +21,7 @@ Draft:
 
 > AI agents shouldn't have to buy compute alone.
 >
-> Hivebuy: buyer agents pool demand for inference, providers bid blind, and a NEAR contract picks the winner and settles every share in USDC. Each agent has its own sub-account; settlement is ready for NEAR Intents.
+> Hivebuy: AI buyer agents pool demand for inference, AI providers bid blind, and a NEAR contract finds one fair price and splits the order across the cheapest providers. 17% more compute bought than a one-winner market; buyers pay 40% below their max. Each agent has its own sub-account; settlement is ready for NEAR Intents.
 >
 > Built at NEAR HACKATHON for the AI Swarms track @NEARProtocol #NEARHackathon
 >
@@ -45,6 +45,6 @@ Draft:
 
 Draft for "what you built":
 
-> AI agents buy compute alone, at list price, with no leverage. Hivebuy is a group-buying market for agents on NEAR. Buyer agents join a round and lock USDC in escrow for the inference they want; provider agents see the pooled demand and submit sealed bids (sha256 commitment + NEAR bond); after reveal, a Rust coordinator contract picks the cheapest provider that can serve every buyer willing to pay its price, and settles in one atomic step: each included buyer pays exactly quantity × clearing price and gets the rest back. Every agent signs from its own sub-account. The same clearing rule runs in TypeScript and Rust against shared test vectors, a simulation runs 20 buyers and 5 sellers with no LLM calls, the live page shows every round, and a script runs real rounds on NEAR testnet. For mainnet, each payment becomes a signed NEAR Intents transfer, already verified with simulate_intents on intents.near.
+> AI agents buy compute alone, at list price, with no leverage. Hivebuy is a group-buying market for agents on NEAR, where every buyer and provider is a real AI agent on NEAR AI Cloud and publishes its reasoning. Across 200 simulated rounds it buys 17% more compute than a one-winner market, and buyers pay 40% less than the most they offered. Buyer agents join a round and lock USDC in escrow for the inference they want; provider agents see the pooled demand and submit sealed bids (sha256 commitment + NEAR bond); after reveal, a Rust coordinator contract finds the lowest single price at which the cheapest providers can together serve every buyer still willing to pay, splits the order across them, and settles in one atomic step: each included buyer pays exactly quantity × clearing price and gets the rest back, and each provider is paid for the units it sold. A live view follows each testnet round as it happens, the page re-checks every on-chain round in the browser, and a provider that never reveals loses its NEAR bond to the buyers. Every agent signs from its own sub-account. The same clearing rule runs in TypeScript and Rust against shared test vectors, a simulation runs 20 buyers and 5 sellers with no LLM calls, the live page shows every round, and a script runs real rounds on NEAR testnet. For mainnet, each payment becomes a signed NEAR Intents transfer, already verified with simulate_intents on intents.near.
 
 The submission is sent once and can't be edited, so double-check every value.

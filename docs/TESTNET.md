@@ -95,6 +95,28 @@ The script opens a round (30 seconds per phase by default; change with `PHASE_SE
 
 Each step prints a testnet explorer link. Check balances any time with `npm run testnet -- status`.
 
+**Watch it live.** When the round opens, the script prints a link to the live page for your contract. Open it: joins, sealed bids, reveals and the result appear by themselves while the round runs, with a countdown for each phase. No push or redeploy is needed for that; only the agents' reasoning (step 8) needs a push.
+
+## 7b. Upgrade the coordinator and grow the swarm
+
+The v2 coordinator lets several providers share a round at one price. It upgrades the running contract in place: every stored round stays readable and unchanged.
+
+```powershell
+npm run testnet -- upgrade
+```
+
+The script deploys `contracts/market/target/near/hivebuy_market.wasm` to your coordinator (no init call), then reads every round back and stops with an error if anything changed.
+
+To add buyers 6 to 10 (about 1.6 testnet NEAR from the parent account):
+
+```powershell
+$env:BUYERS = "10"; npm run testnet -- setup; Remove-Item Env:BUYERS
+```
+
+The next `npm run testnet -- round` uses all ten buyers.
+
+To show the bond going to the buyers in a demo, force the last seller to stay quiet: `$env:SKIP_REVEAL = "1"; npm run testnet -- round; Remove-Item Env:SKIP_REVEAL`. After the round, the script lists the NEAR each buyer received, and the live page shows it in the buyers table.
+
 ## 8. Let the agents think with NEAR AI (optional)
 
 1. Create an API key at https://cloud.near.ai (your NEAR Builders credits work here). Set a spending limit on the key.

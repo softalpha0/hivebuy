@@ -1,6 +1,17 @@
 # Hivebuy
 
-**Group buying for AI agents on NEAR.** Buyer agents pool their demand for AI inference, provider agents submit sealed bids, and a coordinator contract on NEAR picks the winner and settles each buyer's share in USDC.
+**Group buying for AI agents on NEAR.** Buyer agents pool their demand for AI inference, provider agents submit sealed bids, and a coordinator contract on NEAR finds one fair price, splits the order across the cheapest providers, and settles every share in USDC.
+
+**17% more compute bought than a one-winner market, and buyers paid 40% less than the most they offered** (200 simulated rounds; reproduce with `npm run sim -- --rounds 50 --seeds 42,7,123,2026`).
+
+What makes it different:
+
+- **Real AI agents.** Every buyer and provider decides with a model on NEAR AI Cloud (`z-ai/glm-5.3-flash`, private inference in a TEE), and its reasoning is published next to its bid.
+- **Every buyer names its own price.** Buyers lock different quantities at different max prices, so the market sees a real demand curve, not one shared ceiling.
+- **Several providers share a round.** The contract finds one fair price and splits the order across the cheapest providers, so more buyers get served at a lower price than any single provider could offer.
+- **Watch rounds live.** The page follows each testnet round as it runs: joins, sealed bids, reveals and the result, with a countdown.
+- **Verified in your browser.** For every on-chain round, the page re-runs the clearing rule on the revealed bids and checks the price, every fill and every payment against what the contract recorded.
+- **Silent providers pay the buyers.** A provider that commits and never reveals loses its NEAR bond to the round's buyers.
 
 Built for NEAR Hackathon 2026, **AI Swarms track** (`swarms`).
 
@@ -24,7 +35,7 @@ Agents form a market round:
 1. **Join.** Buyer agents say how many units they want (1 unit = 1M tokens of open-model inference) and the most they'll pay per unit. Each locks `qty × max price` in USDC in the coordinator contract.
 2. **Commit.** Provider agents see the pooled demand and submit a **sealed** price and capacity (a sha256 commitment) with a NEAR bond.
 3. **Reveal.** Providers reveal; the contract checks each reveal against its commitment. A provider that doesn't reveal loses its bond.
-4. **Clear.** The contract checks providers from cheapest up. The first one with enough capacity for every buyer willing to pay its price wins at that price. Each included buyer pays exactly `qty × clearing price`; everyone gets the rest of their escrow back. Buyers who aren't included get everything back.
+4. **Clear.** The contract tries prices from the cheapest up (every provider's ask and every buyer's max) and stops at the first one where the providers asking that much or less can together make every unit wanted at that price. Units go to the cheapest providers first, so **several providers can win**, all at the same price. Each included buyer pays exactly `qty × clearing price` and gets the rest of its escrow back; buyers who aren't included get everything back. Full rules: [RULES.md](RULES.md).
 
 Every agent signs with its own NEAR sub-account (`buyer-1.hivebuy.testnet`, `seller-3.hivebuy.testnet`, …), so every on-chain action traces back to one agent.
 
@@ -41,11 +52,11 @@ The simulation on the live page uses scripted agents only, so it runs in the bro
 ## Try it (no wallet, no setup)
 
 1. Open the live demo → see 10 simulated rounds between 20 buyer agents and 5 provider agents.
-2. Click a round → see the sealed bids, the revealed prices, the winner, and each buyer's payment and refund.
-3. Read **Why this result** → see the clearing rule applied step by step (which provider was skipped and why).
+2. Click a round → see the sealed bids, the revealed prices, which providers sold how many units, and each buyer's payment and refund.
+3. Read **Why this result** → see the clearing rule applied step by step (each price tried, and why it did or didn't clear).
 4. Click **Replay round** → watch Join → Commit → Reveal → Clear.
 5. Change the seed and press **Run simulation** → a new, replayable market.
-6. Open the **Testnet contract** tab and enter a coordinator account → see real on-chain rounds.
+6. Open **Live on testnet** → see real on-chain rounds decided by AI agents. While a round is running, the page follows it live: joins, sealed bids, reveals and the result appear by themselves, with a countdown for each phase.
 
 ## Run it locally
 
@@ -53,7 +64,7 @@ Requires Node.js 20 or newer. Works on Windows (PowerShell), macOS and Linux.
 
 ```powershell
 npm install
-npm test                  # 26 TypeScript tests: clearing rule, shared vectors, simulation, agents
+npm test                  # 35 TypeScript tests: clearing rule, shared vectors, simulation, agents
 npm run sim -- --seed 42  # the market in your terminal: 20 buyers, 5 sellers, no LLM calls
 npm run dev               # live page at http://localhost:5173
 ```
@@ -61,7 +72,7 @@ npm run dev               # live page at http://localhost:5173
 Contract tests (Rust, see [docs/TESTNET.md](docs/TESTNET.md) for installing Rust):
 
 ```powershell
-npm run contract:test     # 16 tests, including the same shared vectors as TypeScript
+npm run contract:test     # 19 tests, including the same shared vectors as TypeScript
 ```
 
 Run real rounds on NEAR testnet: [docs/TESTNET.md](docs/TESTNET.md).
@@ -85,11 +96,11 @@ Run real rounds on NEAR testnet: [docs/TESTNET.md](docs/TESTNET.md).
 
 | NEAR feature | How Hivebuy uses it |
 |---|---|
-| Smart contract (Rust, near-sdk 5) | The coordinator: escrow, sealed bids, clearing and settlement in one atomic step |
+| Smart contract (Rust, near-sdk 5) | The coordinator: escrow, sealed bids, clearing and settlement in one atomic step. Upgraded in place to v2 (several providers per round) without losing any stored round |
 | Sub-accounts | One account per agent under one parent, so every bid and payment traces to an agent |
 | NEP-141 + `ft_transfer_call` | Buyers join and fund escrow in one transaction; a failed join is refunded automatically |
 | NEAR bonds (`#[payable]`) | Providers stake a bond with each sealed bid, forfeited if they don't reveal |
-| NEAR Intents | Mainnet settlement path: one signed `transfer` intent per buyer to the winner, verified with `simulate_intents` on `intents.near` |
+| NEAR Intents | Mainnet settlement path: one signed intent per buyer, paying each provider that sold its units, verified with `simulate_intents` on `intents.near` |
 | NEAR AI Cloud | The agents' decisions (`z-ai/glm-5.3-flash`, private inference in a TEE) through the OpenAI-compatible API |
 
 **About the NEAR Intents dry run.** NEAR Intents has no testnet, so the live market settles inside the coordinator on testnet. `npm run intents:dry-run` takes a cleared round, signs one NEP-413 `transfer` intent per included buyer, and sends the batch to `simulate_intents` on the real mainnet Verifier. The Verifier accepts the signatures and nonces and rejects only for missing balance (the fresh agent accounts hold no USDC). With a corrupted signature it answers `invalid signature`, which shows the signatures really are checked.
@@ -118,8 +129,7 @@ Run real rounds on NEAR testnet: [docs/TESTNET.md](docs/TESTNET.md).
 
 ## What's next
 
-- Rounds with several winners at one uniform price.
-- Delivery receipts: the winner posts a reference for each buyer's API key; buyers confirm.
+- Delivery receipts: each winning provider posts a reference for each buyer's API key; buyers confirm.
 - Mainnet settlement through NEAR Intents (`execute_intents`).
 
 ## License

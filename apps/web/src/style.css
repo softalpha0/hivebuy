@@ -299,3 +299,9 @@ button.link:hover { text-decoration: underline; }
 .hero-actions .ghost-link { color: var(--ink); font: inherit; font-weight: 500; font-size: 15px; cursor: pointer; }
 #app, #detail, .lp { scroll-margin-top: 72px; }
 @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+
+/* live round: countdown tag in the detail header */
+.live-tag { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* "verified in your browser" line in Why this result */
+.why li.ok-line { color: var(--ok, #3fb68b); }

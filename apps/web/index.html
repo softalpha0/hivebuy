@@ -33,8 +33,8 @@
         <p class="eyebrow"><span class="live-dot" aria-hidden="true"></span> NEAR Hackathon 2026 · AI Swarms</p>
         <h1>AI agents buy compute together.</h1>
         <p class="lede">
-          Buyer agents pool their demand for inference. Provider agents bid blind. A NEAR contract picks the cheapest
-          provider that can serve everyone at its price, and each agent pays exactly its share.
+          Buyer agents pool their demand for inference. Provider agents bid blind. A NEAR contract finds one fair price,
+          splits the order across the cheapest providers, and each agent pays exactly its share.
         </p>
         <div class="hero-actions">
           <a class="btn-primary" href="#app">Try the market</a>
@@ -67,15 +67,15 @@
           <li class="card">
             <span class="lp-step">Step 3</span>
             <h3>The contract clears</h3>
-            <p>After the reveal, the cheapest provider that can serve everyone at its price wins. Each buyer pays its share; the rest comes back.</p>
+            <p>After the reveal, the contract finds the lowest price at which the cheapest providers can together serve every buyer still willing to pay. Each buyer pays its share; the rest comes back.</p>
             <code class="lp-code">seller-2 wins at 1.28 · 23.04 USDC paid</code>
           </li>
         </ol>
         <!-- big-number proof row (Land-book) -->
         <dl class="proof">
-          <div><dt>43</dt><dd>automated tests in Rust and TypeScript, both checked against the same test cases</dd></div>
-          <div><dt>25</dt><dd>agents per simulated round: 20 buyers and 5 providers, no AI calls needed</dd></div>
-          <div><dt>1</dt><dd>contract call books every payment and refund at once</dd></div>
+          <div><dt>+17%</dt><dd>more compute bought than a one-winner market, over 200 simulated rounds</dd></div>
+          <div><dt>40%</dt><dd>below the most buyers offered: what sharing a round saves them</dd></div>
+          <div><dt>54</dt><dd>automated tests in Rust and TypeScript, both checked against the same test cases</dd></div>
         </dl>
       </section>
 

@@ -10,6 +10,7 @@ interface ContractRound {
   join_end: string;
   commit_end: string;
   reveal_end: string;
+  seller_bond: string;
   buyers: { account_id: string; qty: number; max_price: string; escrow: string }[];
   sellers: {
     account_id: string;
@@ -24,6 +25,19 @@ interface ContractRound {
     demand: number;
     settlements: { account_id: string; included: boolean; pay: string; refund: string }[];
   } | null;
+  /** v2 coordinator only (several providers per round). Missing on contracts not yet upgraded. */
+  fills?: { account_id: string; units: number; payout: string }[];
+  price_set_by?: string | null;
+  bond_shares?: { account_id: string; amount: string }[];
+}
+
+/** Fills from the contract, or rebuilt from the single winner of a v1 round. */
+function fillsOf(r: ContractRound): { fills: { id: string; units: number; payout: bigint }[]; priceSetBy: string | null } {
+  if (r.fills) return { fills: r.fills.map((f) => ({ id: f.account_id, units: f.units, payout: BigInt(f.payout) })), priceSetBy: r.price_set_by ?? null };
+  const o = r.outcome;
+  if (!o?.winner) return { fills: [], priceSetBy: null };
+  const payout = o.settlements.reduce((a, s) => a + BigInt(s.pay), 0n);
+  return { fills: [{ id: o.winner, units: o.demand, payout }], priceSetBy: o.winner };
 }
 
 async function view<T>(contract: string, method: string, args: object): Promise<T> {
@@ -50,6 +64,8 @@ async function view<T>(contract: string, method: string, args: object): Promise<
   if (body.result?.error) throw new Error(body.result.error);
   return JSON.parse(new TextDecoder().decode(new Uint8Array(body.result.result))) as T;
 }
+
+const nsToMs = (ns: string) => Number(BigInt(ns) / 1_000_000n);
 
 function phaseOf(r: ContractRound, nowNs: bigint): ViewRound['phase'] {
   if (r.status === 'Cleared') return 'cleared';
@@ -106,9 +122,10 @@ export async function loadTestnetRounds(contract: string): Promise<ViewRound[]> 
           commitment: s.commitment,
           revealed: s.revealed ? { price: BigInt(s.revealed.price), capacity: s.revealed.capacity } : null,
         })),
+        ends: { join: nsToMs(r.join_end), commit: nsToMs(r.commit_end), reveal: nsToMs(r.reveal_end) },
         result: r.outcome
           ? {
-              winner: r.outcome.winner,
+              ...fillsOf(r),
               price: r.outcome.price === null ? null : BigInt(r.outcome.price),
               demand: r.outcome.demand,
               settlements: r.outcome.settlements.map((s) => ({
@@ -119,6 +136,8 @@ export async function loadTestnetRounds(contract: string): Promise<ViewRound[]> 
               })),
             }
           : null,
+        bond: BigInt(r.seller_bond),
+        bondShares: r.bond_shares?.map((b) => ({ id: b.account_id, amount: BigInt(b.amount) })),
         forfeited: r.outcome ? r.sellers.filter((s) => !revealedIds.has(s.account_id)).map((s) => s.account_id) : [],
         notes: (() => {
           const n = notes?.rounds[String(r.id)];

@@ -4,14 +4,14 @@
  *   npm run intents:dry-run -- --seed 42 --round 1
  *
  * Takes a cleared round from the simulation, turns it into one signed `transfer` intent per
- * included buyer (qty × clearing price of mainnet USDC to the winner), and checks the batch with
+ * included buyer (qty × clearing price of mainnet USDC to the provider or providers that sold those units), and checks the batch with
  * `simulate_intents` on the real Verifier (`intents.near`). This is a read-only view call: nothing
  * is executed and no funds are needed. Agent keys are generated fresh for each run.
  */
 import { randomBytes } from 'node:crypto';
 import { KeyPair, baseEncode, keyToImplicitAddress } from 'near-api-js';
 import { sha256 } from '@noble/hashes/sha2';
-import { formatUsdc } from '@hivebuy/core';
+import { formatUsdc, payments } from '@hivebuy/core';
 import { runSimulation } from '@hivebuy/sim';
 
 const RPC = process.env.NEAR_MAINNET_RPC_URL ?? 'https://free.rpc.fastnear.com';
@@ -70,10 +70,10 @@ if (round.result.status !== 'cleared') {
 }
 const price = round.result.price;
 const included = round.result.settlements.filter((s) => s.included);
+const split = payments(round.buyers, round.result);
 
 // One fresh key per agent; on mainnet these would be the agents' own keys.
-const winnerKey = KeyPair.fromRandom('ed25519');
-const winnerId = keyToImplicitAddress(winnerKey.getPublicKey());
+const sellerIds = new Map(round.result.fills.map((f) => [f.id, keyToImplicitAddress(KeyPair.fromRandom('ed25519').getPublicKey())]));
 
 // Nonce = [4-byte Verifier salt][28 random bytes] (docs: intent-types-and-execution, "Nonce structure").
 const saltHex = await view<string>('current_salt', {});
@@ -86,7 +86,10 @@ const signed = included.map((s) => {
   const message = JSON.stringify({
     signer_id: signerId,
     deadline,
-    intents: [{ intent: 'transfer', receiver_id: winnerId, tokens: { [USDC]: s.pay.toString() } }],
+    // A buyer whose units come from two providers pays both in one signed intent.
+    intents: split
+      .filter((p) => p.buyer === s.id)
+      .map((p) => ({ intent: 'transfer', receiver_id: sellerIds.get(p.seller)!, tokens: { [USDC]: p.amount.toString() } })),
   });
   const hash = nep413Hash(message, nonce, VERIFIER);
   return {
@@ -101,8 +104,9 @@ const signed = included.map((s) => {
   };
 });
 
-console.log(`Round ${roundNo} (seed ${seed}): ${round.result.winner} wins at ${formatUsdc(price)} USDC.`);
-console.log(`Built ${signed.length} transfer intents (buyer → winner), ${formatUsdc(included.reduce((a, s) => a + s.pay, 0n))} USDC in total.`);
+const sellersText = round.result.fills.map((f) => `${f.id} ${f.units}u`).join(', ');
+console.log(`Round ${roundNo} (seed ${seed}): cleared at ${formatUsdc(price)} USDC; ${sellersText}.`);
+console.log(`Built ${signed.length} signed intents (${split.length} transfers, buyer → provider), ${formatUsdc(included.reduce((a, s) => a + s.pay, 0n))} USDC in total.`);
 console.log(`Verifier salt ${saltHex}; simulating on ${VERIFIER} (mainnet, read-only)…\n`);
 
 try {

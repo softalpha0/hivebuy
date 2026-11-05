@@ -4,19 +4,22 @@
  *   npm run testnet -- setup   one time: coordinator, (test token), buyer and seller sub-accounts
  *   npm run testnet -- round   one live round: open → join → commit → reveal → clear → withdraw
  *   npm run testnet -- status  balances and the latest round
+ *   npm run testnet -- upgrade deploys a newer coordinator build in place (keeps every round)
  *
  * Reads PARENT_ACCOUNT (and optionally PARENT_PRIVATE_KEY, TOKEN, BUYERS, SELLERS, PHASE_SECS) from
  * the environment or `.env`. Agent keys are written to `.hivebuy/testnet.json`, which is gitignored.
  *
  * AGENTS=ai makes every agent decide with a model on NEAR AI Cloud (needs NEARAI_API_KEY); the
  * default is the scripted rules. Each round's reasoning is saved to apps/web/public/agent-notes/.
+ *
+ * BUYERS=10 npm run testnet -- setup adds buyer-6 … buyer-10 to an existing setup; the next round uses them all.
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { Account, JsonRpcProvider, KeyPair, KeyPairSigner, actions, getTransactionLastResult, nearToYocto, teraToGas } from 'near-api-js';
 import type { KeyPairString } from 'near-api-js';
-import { commitment, formatUsdc } from '@hivebuy/core';
+import { commitment, formatNear, formatUsdc } from '@hivebuy/core';
 import { type Brain, NearAiClient, nearAiBrain, scripted } from '@hivebuy/agents';
 
 // ---------- config ----------
@@ -32,6 +35,7 @@ const STATE_FILE = resolve('.hivebuy', 'testnet.json');
 const MARKET_WASM = resolve(process.env.MARKET_WASM ?? 'contracts/market/target/near/hivebuy_market.wasm');
 const TOKEN_WASM = resolve(process.env.TOKEN_WASM ?? 'contracts/test-token/target/near/hivebuy_test_token.wasm');
 const BOND = nearToYocto('0.1');
+const LIVE_SITE = process.env.LIVE_SITE ?? 'https://hivebuy-six.vercel.app';
 const GAS = teraToGas('30');
 const GAS_FT_CALL = teraToGas('60');
 const GAS_WITHDRAW = teraToGas('50');
@@ -242,7 +246,16 @@ interface ContractRound {
   commit_end: string;
   reveal_end: string;
   buyers: { account_id: string; qty: number; max_price: string }[];
-  outcome: { price: string | null } | null;
+  outcome: {
+    price: string | null;
+    demand: number;
+    settlements: { account_id: string; included: boolean; pay: string; refund: string }[];
+  } | null;
+  /** v2 coordinator: every seller that sells, cheapest first. */
+  fills: { account_id: string; units: number; payout: string }[];
+  price_set_by: string | null;
+  /** v2.1: forfeited bonds paid to buyers, in yoctoNEAR. */
+  bond_shares?: { account_id: string; amount: string }[];
 }
 
 /** Agent brain for this round: scripted rules, or NEAR AI Cloud when AGENTS=ai (key checked first). */
@@ -301,7 +314,7 @@ async function round() {
     gas: GAS,
   });
   const r0 = await viewUntil<ContractRound | null>(s.market.id, 'get_round', { round_id: roundId }, (r) => r !== null, `round ${roundId}`) as ContractRound;
-  console.log(`Round ${roundId} open.`);
+  console.log(`Round ${roundId} open. Watch it live: ${LIVE_SITE}/?contract=${s.market.id}`);
 
 
   // Join: each buyer locks qty × max price with ft_transfer_call. All buyers send at once.
@@ -348,8 +361,8 @@ async function round() {
         reasoning: d.reasoning,
         source: d.source,
         salt: crypto.randomUUID(),
-        // The last seller sometimes skips the reveal, to show the bond forfeit.
-        reveals: i < s.sellers.length - 1 || s.sellers.length === 1 || Math.random() < 0.5,
+        // The last seller sometimes skips the reveal, to show the bond forfeit (always with SKIP_REVEAL=1).
+        reveals: i < s.sellers.length - 1 || s.sellers.length === 1 || (process.env.SKIP_REVEAL !== '1' && Math.random() < 0.5),
       };
     }),
   );
@@ -385,15 +398,22 @@ async function round() {
 
   await waitUntil(BigInt(r0.reveal_end), 'clear');
 
-  const out = await p.callFunction<{ winner: string | null; price: string | null; demand: number; settlements: { account_id: string; included: boolean; pay: string; refund: string }[] }>({
-    contractId: s.market.id,
-    methodName: 'clear',
-    args: { round_id: roundId },
-    gas: teraToGas('100'),
-  });
-  console.log(out.winner ? `\nCleared: ${short(out.winner)} wins at ${formatUsdc(BigInt(out.price!))}, ${out.demand} units` : '\nNo seller qualified: all escrow refunded.');
-  for (const st of out.settlements) {
+  await p.callFunction({ contractId: s.market.id, methodName: 'clear', args: { round_id: roundId }, gas: teraToGas('100') });
+  const out = await viewUntil<ContractRound>(s.market.id, 'get_round', { round_id: roundId }, (r) => r.outcome !== null, 'the result');
+  const o = out.outcome!;
+  if (o.price === null) console.log('\nNo clearing price: all escrow refunded.');
+  else {
+    const setter = out.price_set_by ?? '';
+    const named = s.buyers.some((b) => b.id === setter) ? `${short(setter)}'s max price` : `${short(setter)}'s ask`;
+    console.log(`\nCleared at ${formatUsdc(BigInt(o.price))} for ${o.demand} units (the price is ${named}):`);
+    for (const f of out.fills) console.log(`  ${short(f.account_id)} sells ${f.units} units, earns ${formatUsdc(BigInt(f.payout))}`);
+  }
+  for (const st of o.settlements) {
     console.log(`  ${short(st.account_id)}: ${st.included ? `pays ${formatUsdc(BigInt(st.pay))}` : 'out'}, refund ${formatUsdc(BigInt(st.refund))}`);
+  }
+  if (out.bond_shares?.length) {
+    console.log('Forfeited bond paid to the buyers:');
+    for (const b of out.bond_shares) console.log(`  ${short(b.account_id)} receives ${formatNear(BigInt(b.amount))} NEAR`);
   }
 
   // Everyone withdraws their credit.
@@ -441,6 +461,26 @@ async function status() {
   }
 }
 
+/** Deploys the current build over the running coordinator. No init call: the stored state is kept. */
+async function upgrade() {
+  const s = loadState();
+  if (!existsSync(MARKET_WASM)) throw new Error('Build the contract first: cd contracts/market; cargo near build non-reproducible-wasm');
+  const before = await view<ContractRound[]>(s.market.id, 'get_latest_rounds', { limit: 20 });
+  console.log(`Upgrading ${s.market.id} (${before.length} rounds stored)…`);
+  const res = await account(s.market.id, s.market.key).signAndSendTransaction({
+    receiverId: s.market.id,
+    actions: [actions.deployContract(readFileSync(MARKET_WASM))],
+  });
+  console.log(`  deployed  ${txLink(res)}`);
+  const after = await viewUntil<ContractRound[]>(s.market.id, 'get_latest_rounds', { limit: 20 }, (r) => r.every((x) => 'fills' in x), 'the new code');
+  if (after.length !== before.length) throw new Error(`Round count changed: ${before.length} → ${after.length}`);
+  for (const r of after) {
+    const old = before.find((x) => x.id === r.id)!;
+    if (JSON.stringify(old.outcome) !== JSON.stringify(r.outcome)) throw new Error(`Round ${r.id} changed during the upgrade`);
+  }
+  console.log(`Done. All ${after.length} rounds read back unchanged, now with per-seller fills.`);
+}
+
 async function waitUntil(endNs: bigint, label: string) {
   const ms = Number(endNs / 1_000_000n) - Date.now() + 3_000;
   if (ms > 0) {
@@ -450,9 +490,9 @@ async function waitUntil(endNs: bigint, label: string) {
 }
 
 const cmd = process.argv[2];
-const run = cmd === 'setup' ? setup : cmd === 'round' ? round : cmd === 'status' ? status : null;
+const run = cmd === 'setup' ? setup : cmd === 'round' ? round : cmd === 'status' ? status : cmd === 'upgrade' ? upgrade : null;
 if (!run) {
-  console.log('Usage: npm run testnet -- setup | round | status');
+  console.log('Usage: npm run testnet -- setup | round | status | upgrade');
   process.exit(1);
 }
 run().catch((e) => {
