@@ -1,8 +1,10 @@
 # Hivebuy
 
+[![CI](https://github.com/softalpha0/hivebuy/actions/workflows/ci.yml/badge.svg)](https://github.com/softalpha0/hivebuy/actions/workflows/ci.yml)
+
 **Group buying for AI agents on NEAR.** Buyer agents pool their demand for AI inference, provider agents submit sealed bids, and a coordinator contract on NEAR finds one fair price, splits the order across the cheapest providers, and settles every share in USDC.
 
-**17% more compute bought than a one-winner market, and buyers paid 40% less than the most they offered** (200 simulated rounds; reproduce with `npm run sim -- --rounds 50 --seeds 42,7,123,2026`).
+**17% more compute bought than a one-winner market, and buyers paid 40% less than the most they offered (200 simulated rounds, seeds 42, 7, 123, 2026).** Reproduce: `npm run sim -- --report` · full table: [docs/RESULTS.md](docs/RESULTS.md).
 
 What makes it different:
 
@@ -60,19 +62,22 @@ The simulation on the live page uses scripted agents only, so it runs in the bro
 
 ## Run it locally
 
-Requires Node.js 20 or newer. Works on Windows (PowerShell), macOS and Linux.
+Requires Node.js 20 or newer and Rust (for the contract tests; see [docs/TESTNET.md](docs/TESTNET.md)). Works on Windows (PowerShell), macOS and Linux. One command checks everything:
 
 ```powershell
-npm install
-npm test                  # 35 TypeScript tests: clearing rule, shared vectors, simulation, agents
-npm run sim -- --seed 42  # the market in your terminal: 20 buyers, 5 sellers, no LLM calls
-npm run dev               # live page at http://localhost:5173
+npm ci
+npm run verify   # 39 TypeScript tests, typecheck, 19 contract tests, then reprints the README's simulated numbers
 ```
 
-Contract tests (Rust, see [docs/TESTNET.md](docs/TESTNET.md) for installing Rust):
+`npm run verify` ends by printing the headline above and regenerating [docs/RESULTS.md](docs/RESULTS.md); a test fails if the README, the landing page or that file disagree with the simulation. CI runs the same command on every push.
+
+Other commands:
 
 ```powershell
-npm run contract:test     # 19 tests, including the same shared vectors as TypeScript
+npm run sim -- --seed 42  # the market in your terminal: 20 buyers, 5 sellers, no LLM calls
+npm run dev               # live page at http://localhost:5173
+npm test                  # TypeScript tests only (no Rust needed)
+npm run contract:test     # contract tests only
 ```
 
 Run real rounds on NEAR testnet: [docs/TESTNET.md](docs/TESTNET.md).

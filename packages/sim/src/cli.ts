@@ -1,10 +1,23 @@
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { formatUsdc, headline } from '@hivebuy/core';
 import { runSimulation, toJson } from './index.js';
+import { buildReport } from './report.js';
 
 function arg(name: string, fallback: string): string {
   const i = process.argv.indexOf(`--${name}`);
   return i >= 0 && process.argv[i + 1] ? process.argv[i + 1]! : fallback;
+}
+
+// npm run sim -- --report: the README's simulated numbers, written to docs/RESULTS.md.
+if (process.argv.includes('--report')) {
+  const report = buildReport();
+  const dir = resolve('docs');
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, 'RESULTS.md'), report.markdown);
+  console.log(report.headline);
+  console.log(`Written to ${join(dir, 'RESULTS.md')}`);
+  process.exit(0);
 }
 
 const seed = Number(arg('seed', '42'));

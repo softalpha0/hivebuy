@@ -15,6 +15,7 @@
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "verify": "npm test && npm run typecheck && npm run contract:test && npm run sim -- --report",
     "sim": "tsx packages/sim/src/cli.ts",
     "dev": "npm run dev -w apps/web",
     "build": "npm run build -w apps/web",
@@ -25,11 +26,11 @@
     "testnet": "tsx scripts/testnet.ts"
   },
   "devDependencies": {
-    "@noble/hashes": "^1.6.1",
     "@types/node": "^22.10.0",
-    "near-api-js": "7.2.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
-    "vitest": "^4.1.12"
+    "vitest": "^4.1.12",
+    "near-api-js": "7.2.0",
+    "@noble/hashes": "^1.6.1"
   }
 }

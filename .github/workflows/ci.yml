@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # The toolchain (Rust 1.86) is pinned in contracts/market/rust-toolchain.toml; rustup installs it on first use.
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            contracts/market/target
+          key: cargo-${{ runner.os }}-${{ hashFiles('contracts/market/Cargo.lock', 'contracts/market/rust-toolchain.toml') }}
+
+      - run: npm ci
+
+      # Tests (TypeScript + Rust), typecheck, and the README's simulated numbers.
+      - run: npm run verify
+
+      - name: docs/RESULTS.md matches the simulation
+        run: git diff --exit-code docs/RESULTS.md
+
+      - run: npm run build
