@@ -78,6 +78,183 @@
           "source": "ai"
         }
       }
+    },
+    "4": {
+      "brain": "nearai:z-ai/glm-5.3-flash",
+      "buyers": {
+        "buyer-10.hivebuy.testnet": {
+          "reasoning": "Bid full value 1.87 to maximize inclusion odds; clearing price will likely be lower.",
+          "source": "ai"
+        },
+        "buyer-3.hivebuy.testnet": {
+          "reasoning": "My 1.15 valuation caps max_price at 1.15, avoiding inclusion above value.",
+          "source": "ai"
+        },
+        "buyer-8.hivebuy.testnet": {
+          "reasoning": "Bidding my full value maximizes inclusion while escrow guarantees I never overpay.",
+          "source": "ai"
+        },
+        "buyer-7.hivebuy.testnet": {
+          "reasoning": "Bid my true value 1.49 with full qty 6 to guarantee inclusion without overpaying.",
+          "source": "ai"
+        },
+        "buyer-6.hivebuy.testnet": {
+          "reasoning": "Bid full budget at true value to maximize inclusion while never overpaying.",
+          "source": "ai"
+        },
+        "buyer-1.hivebuy.testnet": {
+          "reasoning": "Budget caps max_price at 1.24, my exact per-unit value, so I never overpay.",
+          "source": "ai"
+        },
+        "buyer-9.hivebuy.testnet": {
+          "reasoning": "Bid full budget so inclusion only happens when clearing price stays profitable.",
+          "source": "ai"
+        },
+        "buyer-4.hivebuy.testnet": {
+          "reasoning": "Bid above last round's 1.28 clearing price to stay included while capping payment below my 1.65 value.",
+          "source": "ai"
+        },
+        "buyer-2.hivebuy.testnet": {
+          "reasoning": "Bid full value 1.88 to maximize inclusion while staying within budget.",
+          "source": "ai"
+        },
+        "buyer-5.hivebuy.testnet": {
+          "reasoning": "Bid my full value 1.72 to maximize inclusion while never overpaying.",
+          "source": "ai"
+        }
+      },
+      "sellers": {
+        "seller-1.hivebuy.testnet": {
+          "reasoning": "Bidding near top demand clears high while staying under buyers' 1.72 caps.",
+          "source": "ai"
+        },
+        "seller-2.hivebuy.testnet": {
+          "reasoning": "Previous round cleared at 1.28, so bidding just above cost near that level balances winning volume against profit…",
+          "source": "ai"
+        },
+        "seller-3.hivebuy.testnet": {
+          "reasoning": "Bidding 1.54 undercuts pricier rivals while staying above cost, capturing high-demand units at strong margin.",
+          "source": "ai"
+        }
+      }
+    },
+    "5": {
+      "brain": "nearai:z-ai/glm-5.3-flash",
+      "buyers": {
+        "buyer-5.hivebuy.testnet": {
+          "reasoning": "Bid full need at true value 1.70, since clearing price never exceeds it.",
+          "source": "ai"
+        },
+        "buyer-7.hivebuy.testnet": {
+          "reasoning": "Bid my true value 1.57 per unit; paying more than that would lose money.",
+          "source": "ai"
+        },
+        "buyer-10.hivebuy.testnet": {
+          "reasoning": "My per-unit value caps max_price at 1.05, so I escrow 4.20 and only buy if clearing price stays at or below value.",
+          "source": "ai"
+        },
+        "buyer-4.hivebuy.testnet": {
+          "reasoning": "Bid true value 1.69 on all 4 units; I never pay above clearing price.",
+          "source": "ai"
+        },
+        "buyer-1.hivebuy.testnet": {
+          "reasoning": "Bid full 4 units at my true value 1.76, since I never pay above clearing price.",
+          "source": "ai"
+        },
+        "buyer-9.hivebuy.testnet": {
+          "reasoning": "Bid true value 1.74 to maximize inclusion while never risking negative surplus.",
+          "source": "ai"
+        },
+        "buyer-3.hivebuy.testnet": {
+          "reasoning": "Bid my true value 1.12 per unit; paying more would lose money.",
+          "source": "ai"
+        },
+        "buyer-6.hivebuy.testnet": {
+          "reasoning": "My per-unit value caps max_price at 1.16, so I bid my full valuation.",
+          "source": "ai"
+        },
+        "buyer-8.hivebuy.testnet": {
+          "reasoning": "Bid my true value 1.49 for both units since budget caps max_price there.",
+          "source": "ai"
+        },
+        "buyer-2.hivebuy.testnet": {
+          "reasoning": "Bid my true value 1.29; paying last round's 1.60 would lose money anyway.",
+          "source": "ai"
+        }
+      },
+      "sellers": {
+        "seller-1.hivebuy.testnet": {
+          "reasoning": "Pricing just under 1.70 keeps me in all demand tiers above 1.69, maximizing profit.",
+          "source": "ai"
+        },
+        "seller-2.hivebuy.testnet": {
+          "reasoning": "Undercutting rivals near cost wins cheap-first allocation while clearing price stays well above 0.98.",
+          "source": "ai"
+        },
+        "seller-3.hivebuy.testnet": {
+          "reasoning": "Bidding just under last round's 1.60 clearing price keeps me competitive while capturing strong margin over my 1.06…",
+          "source": "ai"
+        }
+      }
+    },
+    "6": {
+      "brain": "nearai:z-ai/glm-5.3-flash",
+      "buyers": {
+        "buyer-3.hivebuy.testnet": {
+          "reasoning": "Budget caps max_price at my 1.03 value, so I never overpay.",
+          "source": "ai"
+        },
+        "buyer-8.hivebuy.testnet": {
+          "reasoning": "Bidding full value 1.60 maximizes inclusion odds while paying only the lower clearing price.",
+          "source": "ai"
+        },
+        "buyer-2.hivebuy.testnet": {
+          "reasoning": "Bid my exact valuation so any clearing price above 1.16 excludes me safely.",
+          "source": "ai"
+        },
+        "buyer-1.hivebuy.testnet": {
+          "reasoning": "Bid full need at true value 1.15; excluded safely if clearing exceeds it.",
+          "source": "ai"
+        },
+        "buyer-9.hivebuy.testnet": {
+          "reasoning": "Bidding my true value 1.33 maximizes inclusion without risking overpayment.",
+          "source": "ai"
+        },
+        "buyer-10.hivebuy.testnet": {
+          "reasoning": "Bid my true value 1.65 per unit so I never overpay.",
+          "source": "ai"
+        },
+        "buyer-6.hivebuy.testnet": {
+          "reasoning": "Bid full value 1.63 to maximize inclusion while never overpaying per unit.",
+          "source": "ai"
+        },
+        "buyer-7.hivebuy.testnet": {
+          "reasoning": "Six units at my 1.08 valuation exactly fit the 6.48 budget.",
+          "source": "ai"
+        },
+        "buyer-4.hivebuy.testnet": {
+          "reasoning": "Previous clearing exceeded my value, so I cap at 1.09 to avoid overpaying.",
+          "source": "ai"
+        },
+        "buyer-5.hivebuy.testnet": {
+          "reasoning": "Bid 3 units at 1.55 to stay included above last round's 1.28 clearing price.",
+          "source": "ai"
+        }
+      },
+      "sellers": {
+        "seller-1.hivebuy.testnet": {
+          "reasoning": "Pricing at 1.33 clears against high-value buyers while staying above cost.",
+          "source": "ai"
+        },
+        "seller-2.hivebuy.testnet": {
+          "reasoning": "Bidding 1.33 captures the high-value 1.33-1.65 demand tiers at a strong margin above my 1.08 cost.",
+          "source": "ai"
+        },
+        "seller-3.hivebuy.testnet": {
+          "reasoning": "Pricing at 1.33 clears against 22 units of demand while staying below the next buyer tier.",
+          "source": "ai"
+        }
+      }
     }
   }
 }
