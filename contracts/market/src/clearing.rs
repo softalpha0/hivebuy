@@ -142,3 +142,39 @@ pub fn bond_shares(qtys: &[u32], forfeited: u128) -> (Vec<u128>, u128) {
     let paid: u128 = shares.iter().sum();
     (shares, forfeited - paid)
 }
+
+/// One buyer's units bought from one seller (RULES.md section 9). Mirrors `payments` in packages/core.
+#[derive(Debug, PartialEq)]
+pub struct PaymentOut {
+    /// Index of the buyer in the round.
+    pub buyer: usize,
+    /// Index into `fills` (cheapest first).
+    pub fill: usize,
+    pub units: u32,
+}
+
+/// Matches included buyers (round order) to fills (cheapest first), splitting a buyer across two
+/// sellers when needed. Per buyer the units add up to its qty; per fill, to the fill's units.
+pub fn payments(buyers: &[BuyerIn], price: u128, fill_units: &[u32]) -> Vec<PaymentOut> {
+    let mut left: Vec<u32> = fill_units.to_vec();
+    let mut out = Vec::new();
+    let mut i = 0;
+    for (b, buyer) in buyers.iter().enumerate() {
+        if buyer.max_price < price {
+            continue;
+        }
+        let mut need = buyer.qty;
+        while need > 0 && i < left.len() {
+            let units = need.min(left[i]);
+            if units > 0 {
+                out.push(PaymentOut { buyer: b, fill: i, units });
+            }
+            need -= units;
+            left[i] -= units;
+            if left[i] == 0 {
+                i += 1;
+            }
+        }
+    }
+    out
+}

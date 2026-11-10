@@ -318,3 +318,7 @@ button.link:hover { text-decoration: underline; }
 
 /* test agent badge (the seller that skips its reveal on purpose) */
 .pill.test { color: var(--accent); background: var(--accent-soft); border-color: transparent; margin-left: 6px; font-size: 11px; }
+
+/* delivery receipts */
+td.reply { white-space: normal; color: var(--ink-2); font-size: 13px; min-width: 260px; }
+td a[href*="nearblocks"] { color: var(--accent); }

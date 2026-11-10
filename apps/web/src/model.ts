@@ -28,6 +28,8 @@ export interface ViewRound {
   forfeited: string[];
   /** Forfeited bonds paid to buyers (testnet rounds cleared by v2.1), in yoctoNEAR. */
   bondShares?: { id: string; amount: bigint }[];
+  /** Delivery receipts (contract v3): on-chain status, plus the reply snippet and tx links from the notes. */
+  deliveries?: { seller: string; buyer: string; units: number; status: 'Delivered' | 'Confirmed' | 'Disputed'; snippet?: string; postTx?: string; confirmTx?: string }[];
   /** Seller bond for this round, in yoctoNEAR (testnet rounds). */
   bond?: bigint;
   /** Published agent reasoning (testnet rounds run by scripts/testnet.ts). */

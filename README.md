@@ -70,7 +70,7 @@ Requires Node.js 20 or newer and Rust (for the contract tests; see [docs/TESTNET
 
 ```powershell
 npm ci
-npm run verify   # 46 TypeScript tests, typecheck, 27 contract tests, then reprints the README's simulated numbers
+npm run verify   # 57 TypeScript tests, typecheck, 32 contract tests, then reprints the README's simulated numbers
 ```
 
 `npm run verify` ends by printing the headline above and regenerating [docs/RESULTS.md](docs/RESULTS.md); a test fails if the README, the landing page or that file disagree with the simulation. CI runs the same command on every push.
@@ -99,7 +99,7 @@ Run real rounds on NEAR testnet: [docs/TESTNET.md](docs/TESTNET.md).
 | Testnet script: creates the coordinator and agent sub-accounts, runs live rounds | ✅ |
 | NEAR Intents settlement, dry run against the real mainnet Verifier | ✅ (`npm run intents:dry-run`) |
 | AI agents on NEAR AI Cloud: buyers bid from their need and budget, providers price from demand and cost; schema-checked with a scripted fallback; reasoning shown on the live page | ✅ (`AGENTS=ai`, 8 unit tests with a mocked API) |
-| Delivery of inference credits (API key with a spending limit) | ⏳ off-chain, not in v1 |
+| Delivery receipts (contract v3): each provider signs a voucher per buyer; the buyer redeems it with one real NEAR AI Cloud call through the providers' endpoint (`api/provider.ts` on Vercel); the receipt hash goes on-chain (`post_delivery`) and the buyer confirms it (`confirm_delivery`) | ✅ unit-tested (contract + endpoint); rounds run with `--delivery` show a Deliveries table with on-chain links. Each voucher is redeemed with one call; metering a buyer's full units is next |
 
 ## How NEAR is used
 
@@ -110,7 +110,7 @@ Run real rounds on NEAR testnet: [docs/TESTNET.md](docs/TESTNET.md).
 | NEP-141 + `ft_transfer_call` | Buyers join and fund escrow in one transaction; a failed join is refunded automatically |
 | NEAR bonds (`#[payable]`) | Providers stake a bond with each sealed bid, forfeited if they don't reveal |
 | NEAR Intents | Mainnet settlement path: one signed intent per buyer, paying each provider that sold its units, verified with `simulate_intents` on `intents.near` |
-| NEAR AI Cloud | The agents' decisions (`z-ai/glm-5.3-flash`, private inference in a TEE) through the OpenAI-compatible API |
+| NEAR AI Cloud | The agents' decisions (`z-ai/glm-5.3-flash`, private inference in a TEE) through the OpenAI-compatible API, and the inference each buyer receives on delivery |
 
 **About the NEAR Intents dry run.** NEAR Intents has no testnet, so the live market settles inside the coordinator on testnet. `npm run intents:dry-run` takes a cleared round, signs one NEP-413 `transfer` intent per included buyer, and sends the batch to `simulate_intents` on the real mainnet Verifier. The Verifier accepts the signatures and nonces and rejects only for missing balance (the fresh agent accounts hold no USDC). With a corrupted signature it answers `invalid signature`, which shows the signatures really are checked.
 
@@ -125,6 +125,8 @@ Run real rounds on NEAR testnet: [docs/TESTNET.md](docs/TESTNET.md).
 | [packages/core](packages/core) | Clearing rule, commitment hash, USDC formatting |
 | [packages/sim](packages/sim) | Agent simulation |
 | [packages/agents](packages/agents) | Agent brains: scripted rules and NEAR AI Cloud |
+| [packages/delivery](packages/delivery) | Delivery vouchers, receipts and the provider endpoint's checks |
+| [api/provider.ts](api/provider.ts) | The providers' delivery endpoint (a Vercel function) |
 | [apps/web](apps/web) | Live page |
 | [scripts](scripts) | Testnet runner and NEAR Intents dry run |
 | [docs](docs) | Plan, testnet guide, deployment, demo script, submission checklist |
@@ -138,7 +140,7 @@ Run real rounds on NEAR testnet: [docs/TESTNET.md](docs/TESTNET.md).
 
 ## What's next
 
-- Delivery receipts: each winning provider posts a reference for each buyer's API key; buyers confirm.
+- Metering a buyer's full units through the provider endpoint, and disputes that move money (today they are recorded on-chain, not enforced).
 - Mainnet settlement through NEAR Intents (`execute_intents`).
 
 ## License

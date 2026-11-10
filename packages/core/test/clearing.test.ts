@@ -23,6 +23,7 @@ interface Vectors {
       demand: number;
       price_set_by: string | null;
       fills: { id: string; units: number; payout: string }[];
+      payments: { buyer: string; seller: string; units: number; amount: string }[];
       settlements: { id: string; included: boolean; pay: string; refund: string }[];
     };
   }[];
@@ -61,6 +62,8 @@ describe('clearing rule (shared vectors)', () => {
       expect(result.demand).toBe(v.expected.demand);
       expect(result.priceSetBy).toBe(v.expected.price_set_by);
       expect(result.fills.map((f) => ({ id: f.id, units: f.units, payout: f.payout.toString() }))).toEqual(v.expected.fills);
+      const buyers = v.buyers.map((b) => ({ id: b.id, qty: b.qty, maxPrice: BigInt(b.max_price) }));
+      expect(payments(buyers, result).map((p) => ({ ...p, amount: p.amount.toString() }))).toEqual(v.expected.payments);
       expect(
         result.settlements.map((s) => ({ id: s.id, included: s.included, pay: s.pay.toString(), refund: s.refund.toString() })),
       ).toEqual(v.expected.settlements);

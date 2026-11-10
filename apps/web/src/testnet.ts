@@ -29,6 +29,7 @@ interface ContractRound {
   fills?: { account_id: string; units: number; payout: string }[];
   price_set_by?: string | null;
   bond_shares?: { account_id: string; amount: string }[];
+  deliveries?: { seller: string; buyer: string; units: number; status: 'Delivered' | 'Confirmed' | 'Disputed' }[];
 }
 
 /** Fills from the contract, or rebuilt from the single winner of a v1 round. */
@@ -77,7 +78,15 @@ function phaseOf(r: ContractRound, nowNs: bigint): ViewRound['phase'] {
 }
 
 interface NotesFile {
-  rounds: Record<string, { brain: string; buyers: Record<string, NoteEntry>; sellers: Record<string, NoteEntry> }>;
+  rounds: Record<
+    string,
+    {
+      brain: string;
+      buyers: Record<string, NoteEntry>;
+      sellers: Record<string, NoteEntry>;
+      deliveries?: { seller: string; buyer: string; snippet: string; postTx: string; confirmTx: string }[];
+    }
+  >;
 }
 interface NoteEntry {
   reasoning: string;
@@ -138,6 +147,10 @@ export async function loadTestnetRounds(contract: string): Promise<ViewRound[]> 
             }
           : null,
         bond: BigInt(r.seller_bond),
+        deliveries: r.deliveries?.map((d) => {
+          const n = notes?.rounds[String(r.id)]?.deliveries?.find((x) => x.seller === d.seller && x.buyer === d.buyer);
+          return { ...d, snippet: n?.snippet, postTx: n?.postTx, confirmTx: n?.confirmTx };
+        }),
         bondShares: r.bond_shares?.map((b) => ({ id: b.account_id, amount: BigInt(b.amount) })),
         forfeited: r.outcome ? r.sellers.filter((s) => !revealedIds.has(s.account_id)).map((s) => s.account_id) : [],
         notes: (() => {

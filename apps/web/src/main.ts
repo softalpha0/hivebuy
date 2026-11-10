@@ -661,6 +661,23 @@ function renderDetail() {
 
   const settle = new Map(res?.settlements.map((s) => [s.id, s]) ?? []);
   const bondOf = new Map(r.bondShares?.map((b) => [b.id, b.amount]) ?? []);
+  const tx = (hash: string | undefined, label: string) =>
+    hash ? `<a href="https://testnet.nearblocks.io/txns/${esc(hash)}" target="_blank" rel="noreferrer">${label}</a>` : label;
+  // Delivery receipts (RULES.md section 9): one row per provider → buyer pair.
+  const deliveries =
+    showResult && r.deliveries?.length
+      ? `<section class="block"><h3>Deliveries <span class="muted">${r.deliveries.filter((d) => d.status === 'Confirmed').length} of ${r.deliveries.length} confirmed by the buyer on-chain</span></h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Provider</th><th>Buyer</th><th class="num">Units</th><th>Status</th><th class="wide">Reply to the buyer's request</th><th>On-chain</th></tr></thead>
+      <tbody>${r.deliveries
+        .map((d) => {
+          const mark = d.status === 'Confirmed' ? '<span class="pill ok">Confirmed ✓</span>' : d.status === 'Disputed' ? '<span class="pill bad">Disputed</span>' : '<span class="pill info">Delivered</span>';
+          return `<tr><td class="who">${short(d.seller)}</td><td class="who">${short(d.buyer)}</td><td class="num">${d.units}</td><td>${mark}</td>
+            <td class="wide reply">${d.snippet ? esc(d.snippet) : '<span class="muted">—</span>'}</td>
+            <td>${tx(d.postTx, 'receipt')}${d.confirmTx ? ` · ${tx(d.confirmTx, 'confirmation')}` : ''}</td></tr>`;
+        })
+        .join('')}</tbody></table></div></section>`
+      : '';
   const bondCol = showResult && bondOf.size > 0;
   const buyers = `<section class="block"><h3>Buyers <span class="muted">${r.buyers.length}</span></h3>
     <div class="table-wrap"><table>
@@ -703,7 +720,7 @@ function renderDetail() {
       <section class="block"><h3>Activity</h3><ol class="trace">${trace}</ol></section>
       <section class="block" id="ladder-slot"><h3>Price ladder <span class="muted">prices tried, cheapest first</span></h3></section>
     </div>
-    ${why}${sellers}${buyers}`;
+    ${why}${sellers}${buyers}${deliveries}`;
 
   const slot = host.querySelector('#ladder-slot') as HTMLElement;
   const chart = stage >= 2 ? ladderChart(r, showResult) : null;

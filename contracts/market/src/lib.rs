@@ -130,6 +130,32 @@ pub struct Round {
     pub outcome: Option<Outcome>,
 }
 
+/// Where a delivery stands (RULES.md section 9). No entry yet means pending.
+#[near(serializers = [borsh, json])]
+#[derive(Clone, PartialEq, Debug)]
+pub enum DeliveryStatus {
+    /// The seller posted a receipt for the buyer's units.
+    Delivered,
+    /// The buyer confirmed it received what the receipt describes.
+    Confirmed,
+    /// The buyer says it did not. Recorded, not enforced in v3.
+    Disputed,
+}
+
+/// Evidence that a seller delivered a buyer's units (contract v3).
+#[near(serializers = [borsh, json])]
+#[derive(Clone)]
+pub struct Delivery {
+    pub seller: AccountId,
+    pub buyer: AccountId,
+    pub units: u32,
+    /// sha256 of the off-chain receipt, 64 lowercase hex characters.
+    pub receipt_hash: String,
+    pub status: DeliveryStatus,
+    pub posted_at: U64,
+    pub confirmed_at: Option<U64>,
+}
+
 /// A round as returned by the views: the stored round plus every seller's fill.
 #[near(serializers = [json])]
 pub struct RoundView {
@@ -141,6 +167,8 @@ pub struct RoundView {
     pub price_set_by: Option<AccountId>,
     /// Forfeited bonds paid to the round's buyers, in yoctoNEAR. Empty for rounds cleared before v2.1.
     pub bond_shares: Vec<BondShare>,
+    /// Delivery receipts posted by sellers and confirmed by buyers (v3). Empty until a seller posts one.
+    pub deliveries: Vec<Delivery>,
 }
 
 #[near(serializers = [json])]
@@ -400,6 +428,48 @@ impl Market {
         outcome
     }
 
+    /// A seller that sold units to `buyer` in this round posts the hash of its delivery receipt.
+    /// Payments are already booked at `clear()`; receipts are the evidence layer (RULES.md section 9).
+    pub fn post_delivery(&mut self, round_id: u64, buyer: AccountId, receipt_hash: String) {
+        let seller = env::predecessor_account_id();
+        let round = self.rounds.get(&round_id).unwrap_or_else(|| env::panic_str("Unknown round"));
+        require!(round.status == RoundStatus::Cleared, "Round has not cleared");
+        require!(
+            receipt_hash.len() == 64 && receipt_hash.chars().all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase()),
+            "Receipt hash must be a lowercase hex sha256"
+        );
+        let units = units_sold(round, &seller, &buyer);
+        require!(units > 0, "You sold no units to this buyer in this round");
+        let mut deliveries = read_deliveries(round_id);
+        require!(!deliveries.iter().any(|d| d.seller == seller && d.buyer == buyer), "Delivery already posted");
+        deliveries.push(Delivery {
+            seller: seller.clone(),
+            buyer: buyer.clone(),
+            units,
+            receipt_hash,
+            status: DeliveryStatus::Delivered,
+            posted_at: U64(env::block_timestamp()),
+            confirmed_at: None,
+        });
+        write_deliveries(round_id, &deliveries);
+        env::log_str(&format!("EVENT delivery_posted {round_id} {seller} {buyer} {units}"));
+    }
+
+    /// The buyer confirms (`ok = true`) or disputes (`ok = false`) a delivery a seller posted to it.
+    pub fn confirm_delivery(&mut self, round_id: u64, seller: AccountId, ok: bool) {
+        let buyer = env::predecessor_account_id();
+        let mut deliveries = read_deliveries(round_id);
+        let d = deliveries
+            .iter_mut()
+            .find(|d| d.seller == seller && d.buyer == buyer)
+            .unwrap_or_else(|| env::panic_str("No delivery from this seller to you"));
+        require!(d.status == DeliveryStatus::Delivered, "Delivery already confirmed or disputed");
+        d.status = if ok { DeliveryStatus::Confirmed } else { DeliveryStatus::Disputed };
+        d.confirmed_at = Some(U64(env::block_timestamp()));
+        write_deliveries(round_id, &deliveries);
+        env::log_str(&format!("EVENT delivery_{} {round_id} {seller} {buyer}", if ok { "confirmed" } else { "disputed" }));
+    }
+
     /// Sends the caller's whole USDC credit. The credit is restored if the transfer fails.
     pub fn withdraw(&mut self) -> Promise {
         let caller = env::predecessor_account_id();
@@ -524,6 +594,34 @@ fn fills_key(round_id: u64) -> Vec<u8> {
     [b"fills:".as_slice(), &round_id.to_le_bytes()].concat()
 }
 
+fn deliveries_key(round_id: u64) -> Vec<u8> {
+    [b"deliv:".as_slice(), &round_id.to_le_bytes()].concat()
+}
+
+fn read_deliveries(round_id: u64) -> Vec<Delivery> {
+    env::storage_read(&deliveries_key(round_id))
+        .map(|raw| near_sdk::borsh::from_slice(&raw).unwrap_or_else(|_| env::panic_str("Corrupt deliveries")))
+        .unwrap_or_default()
+}
+
+fn write_deliveries(round_id: u64, deliveries: &[Delivery]) {
+    env::storage_write(&deliveries_key(round_id), &near_sdk::borsh::to_vec(deliveries).unwrap());
+}
+
+/// Units `seller` sold to `buyer` in a cleared round, from the same split as `payments` in packages/core.
+fn units_sold(round: &Round, seller: &AccountId, buyer: &AccountId) -> u32 {
+    let view = view_of(round);
+    let Some(price) = round.outcome.as_ref().and_then(|o| o.price) else { return 0 };
+    let buyers_in: Vec<clearing::BuyerIn> =
+        round.buyers.iter().map(|b| clearing::BuyerIn { qty: b.qty, max_price: b.max_price.0 }).collect();
+    let fill_units: Vec<u32> = view.fills.iter().map(|f| f.units).collect();
+    clearing::payments(&buyers_in, price.0, &fill_units)
+        .iter()
+        .filter(|p| &view.fills[p.fill].account_id == seller && &round.buyers[p.buyer].account_id == buyer)
+        .map(|p| p.units)
+        .sum()
+}
+
 fn bonds_key(round_id: u64) -> Vec<u8> {
     [b"bonds:".as_slice(), &round_id.to_le_bytes()].concat()
 }
@@ -551,7 +649,7 @@ fn view_of(round: &Round) -> RoundView {
     let bond_shares: Vec<BondShare> = env::storage_read(&bonds_key(round.id))
         .map(|raw| near_sdk::borsh::from_slice(&raw).unwrap_or_else(|_| env::panic_str("Corrupt bond shares")))
         .unwrap_or_default();
-    RoundView { round: round.clone(), fills, price_set_by, bond_shares }
+    RoundView { round: round.clone(), fills, price_set_by, bond_shares, deliveries: read_deliveries(round.id) }
 }
 
 /// sha256("<round_id>:<seller_id>:<price>:<capacity>:<salt>") as lowercase hex (RULES.md section 3).

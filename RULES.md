@@ -8,7 +8,7 @@ These are the market rules. The contract (`contracts/market`) and the TypeScript
 
 One **unit** = 1 million tokens of open-model inference (for example Qwen, DeepSeek or GLM) on the winning provider's endpoint. Prices are in **USDC** (6 decimals), per unit.
 
-Delivery (an API key with a spending limit matching the buyer's share) happens off-chain after settlement and is out of scope for v1.
+After a round clears, each provider delivers to each buyer it sold units to, and both sides leave evidence on-chain (section 9).
 
 ## 2. Who takes part
 
@@ -108,3 +108,16 @@ Credits are withdrawn with `withdraw()`, which sends USDC to the caller. If the 
 ## 8. NEAR Intents (mainnet-ready, dry run)
 
 NEAR Intents has no testnet. The live market therefore settles in the coordinator on testnet. For mainnet, `npm run intents:dry-run` turns a cleared round into one signed intent per included buyer, paying `units × p` USDC to each seller that sold that buyer's units and checks the batch against the real Verifier (`intents.near`) with `simulate_intents`, which changes no state.
+
+## 9. Delivery (contract v3)
+
+Payments are booked at Clear and never change. Delivery adds evidence that each buyer got what it paid for.
+
+1. **Who delivers to whom.** Included buyers, in round order, are matched to the sellers' fills, cheapest seller first; a buyer whose units come from two sellers gets two deliveries. *Tested by* `tests.rs::shared_clearing_vectors` (`payments` in every shared case), `clearing.test.ts › payments`.
+2. **Voucher.** The seller signs `hivebuy-voucher|v1|<contract>|<round_id>|<buyer>|<seller>|<units>|<expires_at>|<nonce>` with its NEAR key (ed25519). A voucher is valid for one hour and covers exactly the units that seller sold that buyer. *Tested by* `delivery.test.ts › vouchers`.
+3. **Redemption.** The buyer signs `hivebuy-redeem|v1|<nonce>|sha256(prompt)` with one of its own on-chain access keys and sends it with the voucher and a prompt of at most 500 characters to the seller's endpoint (`POST /api/provider`). The endpoint checks both signatures, that the buyer's key is on-chain, the expiry, and the round itself; then it makes one real inference call on NEAR AI Cloud. *Tested by* `provider.test.ts › provider endpoint: redemption`.
+4. **Receipt.** The endpoint returns the completion and a receipt (round, buyer, seller, units, voucher nonce, model, sha256 of the prompt and of the completion, token counts, time). The seller posts `sha256(receipt)` on-chain with `post_delivery(round_id, buyer, receipt_hash)`, which only a seller that sold units to that buyer in a cleared round can call, once per pair. *Tested by* `tests.rs::delivery_only_by_a_seller_that_sold_to_that_buyer`, `tests.rs::delivery_cannot_be_posted_twice_or_with_a_bad_hash`, `tests.rs::no_delivery_before_the_round_clears`.
+5. **Confirmation.** The buyer recomputes the receipt hash and checks it matches its voucher, its prompt and the completion it received, then calls `confirm_delivery(round_id, seller, ok)`: `ok = true` → Confirmed, `false` → Disputed. Only that buyer can call it, once. *Tested by* `tests.rs::delivery_posted_then_confirmed`, `tests.rs::only_the_buyer_confirms_and_only_once`, `delivery.test.ts › receipts`.
+6. **One redemption per pair.** Once a receipt is on-chain, the endpoint refuses new vouchers and redemptions for that pair. *Tested by* `provider.test.ts › provider endpoint: redemption`.
+7. **Disputes are recorded, not enforced.** A dispute is visible on-chain and on the live page; in v3 it does not move money. Each voucher is redeemed with one inference call (a demonstration of delivery); metering a buyer's full units is next.
+

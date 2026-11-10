@@ -337,6 +337,23 @@ fn shared_clearing_vectors() {
             }
             None => assert_eq!(exp["status"], "failed", "{name}"),
         }
+        // Who pays whom (RULES.md section 9), same split as packages/core `payments`.
+        let want = exp["payments"].as_array().unwrap();
+        let got = match &out.cleared {
+            Some(c) => {
+                let units: Vec<u32> = c.fills.iter().map(|f| f.units).collect();
+                clearing::payments(&buyers_in, c.price, &units)
+                    .iter()
+                    .map(|p| (buyers[p.buyer]["id"].as_str().unwrap().to_string(), sellers[c.fills[p.fill].seller]["id"].as_str().unwrap().to_string(), p.units))
+                    .collect::<Vec<_>>()
+            }
+            None => vec![],
+        };
+        let want: Vec<(String, String, u32)> = want
+            .iter()
+            .map(|p| (p["buyer"].as_str().unwrap().to_string(), p["seller"].as_str().unwrap().to_string(), p["units"].as_u64().unwrap() as u32))
+            .collect();
+        assert_eq!(got, want, "{name} payments");
         let exp_s = exp["settlements"].as_array().unwrap();
         assert_eq!(exp_s.len(), out.settlements.len(), "{name}");
         for (got, want) in out.settlements.iter().zip(exp_s) {
@@ -449,4 +466,88 @@ fn clear_is_permissionless_after_reveal_end() {
     ctx("a.testnet", START + 181 * SEC + 3_600 * SEC, 0);
     m.clear(1);
     assert_eq!(m.get_round(1).unwrap().round.status, RoundStatus::Cleared);
+}
+
+// ---------- Delivery receipts (contract v3, RULES.md section 9) ----------
+
+const HASH: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
+/// RULES.md worked example: s1 sells 20 (a 10, b 10), s2 sells 5 (b 5), c is out, s3 sells nothing.
+fn cleared_worked_example() -> Market {
+    let mut m = setup();
+    join(&mut m, "a.testnet", 10, 2_000_000);
+    join(&mut m, "b.testnet", 15, 1_500_000);
+    join(&mut m, "c.testnet", 20, 1_200_000);
+    commit(&mut m, "s1.testnet", 1_100_000, 20, "x1");
+    commit(&mut m, "s2.testnet", 1_400_000, 15, "x2");
+    commit(&mut m, "s3.testnet", 1_900_000, 100, "x3");
+    reveal(&mut m, "s1.testnet", 1_100_000, 20, "x1");
+    reveal(&mut m, "s2.testnet", 1_400_000, 15, "x2");
+    reveal(&mut m, "s3.testnet", 1_900_000, 100, "x3");
+    clear_now(&mut m);
+    m
+}
+
+fn post(m: &mut Market, seller: &str, buyer: &str, hash: &str) {
+    ctx(seller, START + 200 * SEC, 0);
+    m.post_delivery(1, acc(buyer), hash.into());
+}
+
+fn confirm(m: &mut Market, buyer: &str, seller: &str, ok: bool) {
+    ctx(buyer, START + 210 * SEC, 0);
+    m.confirm_delivery(1, acc(seller), ok);
+}
+
+#[test]
+fn delivery_posted_then_confirmed() {
+    let mut m = cleared_worked_example();
+    post(&mut m, "s1.testnet", "b.testnet", HASH);
+    post(&mut m, "s2.testnet", "b.testnet", HASH);
+    confirm(&mut m, "b.testnet", "s1.testnet", true);
+    confirm(&mut m, "b.testnet", "s2.testnet", false);
+    let d = m.get_round(1).unwrap().deliveries;
+    assert_eq!((d[0].seller.as_str(), d[0].units, d[0].status.clone()), ("s1.testnet", 10, DeliveryStatus::Confirmed));
+    assert_eq!((d[1].seller.as_str(), d[1].units, d[1].status.clone()), ("s2.testnet", 5, DeliveryStatus::Disputed));
+    assert!(d[0].confirmed_at.is_some());
+}
+
+#[test]
+fn delivery_only_by_a_seller_that_sold_to_that_buyer() {
+    let mut m = cleared_worked_example();
+    // s2 sold nothing to a; s3 sold nothing at all; nobody sold to c (excluded).
+    assert!(rejected(|| post(&mut m, "s2.testnet", "a.testnet", HASH)));
+    assert!(rejected(|| post(&mut m, "s3.testnet", "a.testnet", HASH)));
+    assert!(rejected(|| post(&mut m, "s1.testnet", "c.testnet", HASH)));
+    assert!(rejected(|| post(&mut m, "b.testnet", "b.testnet", HASH)));
+    assert!(m.get_round(1).unwrap().deliveries.is_empty());
+}
+
+#[test]
+fn delivery_cannot_be_posted_twice_or_with_a_bad_hash() {
+    let mut m = cleared_worked_example();
+    assert!(rejected(|| post(&mut m, "s1.testnet", "a.testnet", "not-a-hash")));
+    assert!(rejected(|| post(&mut m, "s1.testnet", "a.testnet", &HASH.to_uppercase())));
+    post(&mut m, "s1.testnet", "a.testnet", HASH);
+    assert!(rejected(|| post(&mut m, "s1.testnet", "a.testnet", HASH)));
+}
+
+#[test]
+fn only_the_buyer_confirms_and_only_once() {
+    let mut m = cleared_worked_example();
+    // Nothing to confirm before the seller posts.
+    assert!(rejected(|| confirm(&mut m, "a.testnet", "s1.testnet", true)));
+    post(&mut m, "s1.testnet", "a.testnet", HASH);
+    assert!(rejected(|| confirm(&mut m, "b.testnet", "s1.testnet", true)));
+    assert!(rejected(|| confirm(&mut m, "s1.testnet", "s1.testnet", true)));
+    confirm(&mut m, "a.testnet", "s1.testnet", true);
+    assert!(rejected(|| confirm(&mut m, "a.testnet", "s1.testnet", false)));
+}
+
+#[test]
+fn no_delivery_before_the_round_clears() {
+    let mut m = setup();
+    join(&mut m, "a.testnet", 1, 2_000_000);
+    commit(&mut m, "s1.testnet", 1_000_000, 10, "x1");
+    reveal(&mut m, "s1.testnet", 1_000_000, 10, "x1");
+    assert!(rejected(|| post(&mut m, "s1.testnet", "a.testnet", HASH)));
 }

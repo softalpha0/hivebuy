@@ -5,6 +5,9 @@
  *   npm run testnet -- round   one live round: open → join → commit → reveal → clear → withdraw
  *   npm run testnet -- status  balances and the latest round
  *   npm run testnet -- upgrade deploys a newer coordinator build in place (keeps every round)
+ *   npm run testnet -- deliver <round>   delivery for a round that already cleared (see --delivery)
+ *   npm run -s testnet -- provider-keys  prints PROVIDER_KEYS for Vercel, nothing else: a function-call key per
+ *                      seller that can only call post_delivery on the coordinator (created once, saved locally)
  *
  * Reads PARENT_ACCOUNT (and optionally PARENT_PRIVATE_KEY, TOKEN, BUYERS, SELLERS, PHASE_SECS) from
  * the environment or `.env`. Agent keys are written to `.hivebuy/testnet.json`, which is gitignored.
@@ -19,6 +22,9 @@
  *                      fill the round and several must share it (default: each offers 15-45 units).
  *   --info minimal     providers see only the aggregate demand curve: no previous clearing price, no single
  *                      orders (docs/MECHANISM.md). Default full.
+ *   --delivery         after clearing, every buyer redeems a voucher from each provider it bought from with
+ *                      one real inference call through the providers' endpoint (PROVIDER_URL, default
+ *                      <LIVE_SITE>/api/provider), checks the receipt and confirms it on-chain (RULES.md section 9).
  *   SKIP_REVEAL=never|random|always   whether the test agent (the last seller) skips its reveal to show the bond
  *                      forfeit. Default random (half the time). Every other seller always reveals.
  */
@@ -27,7 +33,8 @@ import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { Account, JsonRpcProvider, KeyPair, KeyPairSigner, actions, getTransactionLastResult, nearToYocto, teraToGas } from 'near-api-js';
 import type { KeyPairString } from 'near-api-js';
-import { commitment, formatNear, formatUsdc } from '@hivebuy/core';
+import { commitment, formatNear, formatUsdc, payments } from '@hivebuy/core';
+import { type Receipt, type SignedVoucher, checkReceipt, redeemMessage, sign } from '@hivebuy/delivery';
 import { type Brain, type InfoPolicy, NearAiClient, nearAiBrain, scripted } from '@hivebuy/agents';
 
 // ---------- config ----------
@@ -67,6 +74,8 @@ interface State {
   tokenKey?: AgentKey;
   buyers: AgentKey[];
   sellers: AgentKey[];
+  /** Per seller: a function-call key limited to post_delivery on the coordinator, for the Vercel endpoint. */
+  deliveryKeys?: Record<string, KeyPairString>;
 }
 
 // ---------- helpers ----------
@@ -262,6 +271,8 @@ interface ContractRound {
   /** v2 coordinator: every seller that sells, cheapest first. */
   fills: { account_id: string; units: number; payout: string }[];
   price_set_by: string | null;
+  /** v3: delivery receipts. */
+  deliveries?: { seller: string; buyer: string; status: string }[];
   /** v2.1: forfeited bonds paid to buyers, in yoctoNEAR. */
   bond_shares?: { account_id: string; amount: string }[];
 }
@@ -499,9 +510,69 @@ async function round() {
   for (const b of bids) {
     notes.sellers[b.sel.id] = { reasoning: b.reasoning, source: b.source, revealed: b.reveals, ...(b.testAgent ? { testAgent: true } : {}) };
   }
+  if (process.argv.includes('--delivery')) await deliver(s, roundId, notes);
+
   const file = saveNotes(s.market.id, roundId, notes);
   console.log(`\nAgent reasoning saved to ${file}. Commit and push it to show it on the live page.`);
   console.log(`See it: https://hivebuy-six.vercel.app/?contract=${s.market.id} (or npm run dev, then http://localhost:5173/?contract=${s.market.id})`);
+}
+
+/** What each buyer asks its provider for with its voucher: short, so each delivery stays cheap. */
+const PROMPTS = [
+  'In one sentence, what is a uniform-price auction?',
+  'In one sentence, why do sealed bids stop copying?',
+  'In one sentence, what does an escrow do?',
+  'In one sentence, what is a NEAR sub-account?',
+  'In one sentence, why do buyers pool demand?',
+];
+
+async function postJson(url: string, body: object): Promise<Record<string, unknown>> {
+  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(70_000) });
+  const out = (await res.json().catch(() => ({ error: `HTTP ${res.status}` }))) as Record<string, unknown>;
+  if (!res.ok) throw new Error(String(out.error ?? `HTTP ${res.status}`));
+  return out;
+}
+
+/**
+ * RULES.md section 9: each included buyer redeems a voucher from every provider it bought units from,
+ * with one real inference call, checks the receipt against the completion it got, and confirms (or
+ * disputes) the delivery on-chain. Runs after the round has cleared and settled.
+ */
+async function deliver(s: State, roundId: number, notes: RoundNotes) {
+  const url = process.env.PROVIDER_URL ?? `${LIVE_SITE}/api/provider`;
+  const r = await viewUntil<ContractRound>(s.market.id, 'get_round', { round_id: roundId }, (x) => x.outcome !== null, 'the result');
+  if (!r.outcome?.price || r.fills.length === 0) return;
+  const price = BigInt(r.outcome.price);
+  const pays = payments(
+    r.buyers.map((b) => ({ id: b.account_id, qty: b.qty, maxPrice: BigInt(b.max_price) })),
+    { status: 'cleared', price, demand: r.outcome.demand, fills: r.fills.map((f) => ({ id: f.account_id, units: f.units, payout: BigInt(f.payout) })), priceSetBy: '', settlements: [] },
+  );
+  console.log(`\nDelivery through ${url} (${pays.length} buyer-provider pairs)…`);
+  notes.deliveries = [];
+  for (const [i, p] of pays.entries()) {
+    const buyer = s.buyers.find((b) => b.id === p.buyer);
+    if (!buyer) continue;
+    const prompt = PROMPTS[i % PROMPTS.length]!;
+    try {
+      const { voucher } = (await postJson(url, { action: 'voucher', seller: p.seller, round_id: roundId, buyer: p.buyer })) as { voucher: SignedVoucher };
+      const signed = sign(buyer.key, redeemMessage(voucher.voucher.nonce, prompt));
+      const out = (await postJson(url, { action: 'redeem', voucher, prompt, buyer_public_key: signed.public_key, buyer_signature: signed.signature })) as {
+        completion: string;
+        receipt: Receipt;
+        receipt_hash: string;
+        post_tx: string;
+      };
+      const problem = checkReceipt(out.receipt, out.receipt_hash, voucher, prompt, out.completion);
+      // Wait until the RPC shows the receipt the provider posted, then confirm it.
+      await viewUntil<ContractRound>(s.market.id, 'get_round', { round_id: roundId }, (x) => (x.deliveries ?? []).some((d) => d.seller === p.seller && d.buyer === p.buyer), 'the posted receipt');
+      const res = await account(buyer.id, buyer.key).callFunctionRaw({ contractId: s.market.id, methodName: 'confirm_delivery', args: { round_id: roundId, seller: p.seller, ok: problem === null }, gas: GAS });
+      const snippet = out.completion.replace(/\s+/g, ' ').slice(0, 160);
+      notes.deliveries.push({ seller: p.seller, buyer: p.buyer, units: p.units, prompt, snippet, status: problem === null ? 'confirmed' : 'disputed', postTx: out.post_tx, confirmTx: res.transaction.hash });
+      console.log(`  ${short(p.seller)} → ${short(p.buyer)} (${p.units} units): ${problem === null ? 'confirmed' : `disputed: ${problem}`}. "${snippet.slice(0, 70)}…"  ${txLink(res)}`);
+    } catch (e) {
+      console.log(`  ${short(p.seller)} → ${short(p.buyer)}: delivery failed: ${e instanceof Error ? e.message : e}`);
+    }
+  }
 }
 
 interface RoundNotes {
@@ -510,6 +581,7 @@ interface RoundNotes {
   skipReveal?: SkipMode;
   info?: InfoPolicy;
   buyers: Record<string, { reasoning: string; source: string }>;
+  deliveries?: { seller: string; buyer: string; units: number; prompt: string; snippet: string; status: string; postTx: string; confirmTx: string }[];
   /** testAgent: the seller the script may make skip its reveal (labelled on the live page). */
   sellers: Record<string, { reasoning: string; source: string; testAgent?: boolean; revealed?: boolean }>;
 }
@@ -564,10 +636,53 @@ async function waitUntil(endNs: bigint, label: string) {
   }
 }
 
+/**
+ * Prints only the JSON for Vercel's PROVIDER_KEYS, so it can be piped to the clipboard and never shown.
+ * The keys are function-call keys that can only call post_delivery on the coordinator (allowance 0.25 NEAR
+ * for gas): if the deployment leaked, they could not move any funds. Created once per seller and saved
+ * in .hivebuy/testnet.json; progress goes to stderr so stdout stays clean.
+ */
+async function providerKeys() {
+  const s = loadState();
+  s.deliveryKeys ??= {};
+  for (const sel of s.sellers) {
+    const known = s.deliveryKeys[sel.id];
+    if (known) {
+      const pk = KeyPair.fromString(known).getPublicKey().toString();
+      // A key added seconds ago can take a moment to show up on the RPC, so check a few times.
+      let ok = false;
+      for (let i = 0; i < 4 && !ok; i++) {
+        ok = await provider.query({ request_type: 'view_access_key', account_id: sel.id, public_key: pk, finality: 'final' }).then(() => true, () => false);
+        if (!ok) await sleep(2_000);
+      }
+      if (ok) continue;
+    }
+    const kp = KeyPair.fromRandom('ed25519');
+    await account(sel.id, sel.key).addFunctionCallAccessKey({ publicKey: kp.getPublicKey(), contractId: s.market.id, methodNames: ['post_delivery'], allowance: nearToYocto('0.25') });
+    s.deliveryKeys[sel.id] = kp.toString() as KeyPairString;
+    writeFileSync(STATE_FILE, JSON.stringify(s, null, 2));
+    process.stderr.write(`created a post_delivery-only key for ${short(sel.id)}\n`);
+  }
+  process.stdout.write(JSON.stringify(s.deliveryKeys));
+}
+
+/** `deliver <round>`: run the delivery phase for a cleared round, e.g. after the endpoint was configured. */
+async function deliverCmd() {
+  const s = loadState();
+  const roundId = Number(process.argv[3]);
+  if (!Number.isInteger(roundId) || roundId < 1) throw new Error('Usage: npm run testnet -- deliver <round id>');
+  const file = join(resolve('apps', 'web', 'public', 'agent-notes'), `${s.market.id}.json`);
+  const all = existsSync(file) ? (JSON.parse(readFileSync(file, 'utf8')) as { rounds: Record<string, RoundNotes> }) : { rounds: {} };
+  const notes: RoundNotes = all.rounds[String(roundId)] ?? { brain: 'scripted', buyers: {}, sellers: {} };
+  await deliver(s, roundId, notes);
+  console.log(`\nSaved to ${saveNotes(s.market.id, roundId, notes)}. Commit and push it to show it on the live page.`);
+}
+
 const cmd = process.argv[2];
-const run = cmd === 'setup' ? setup : cmd === 'round' ? round : cmd === 'status' ? status : cmd === 'upgrade' ? upgrade : null;
+const run =
+  cmd === 'setup' ? setup : cmd === 'round' ? round : cmd === 'status' ? status : cmd === 'upgrade' ? upgrade : cmd === 'deliver' ? deliverCmd : cmd === 'provider-keys' ? providerKeys : null;
 if (!run) {
-  console.log('Usage: npm run testnet -- setup | round | status | upgrade');
+  console.log('Usage: npm run testnet -- setup | round | status | upgrade | deliver <round>');
   process.exit(1);
 }
 run().catch((e) => {

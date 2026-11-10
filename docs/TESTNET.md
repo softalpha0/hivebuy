@@ -122,6 +122,30 @@ The next `npm run testnet -- round` uses all ten buyers.
 - `--info minimal`: providers are told only the aggregate demand curve, not the previous clearing price or single orders (see [MECHANISM.md](MECHANISM.md)). Default `full`.
 - After rounds, `npm run live:report` reads every round from the contract and rewrites `docs/LIVE.md` and the dated live line in the README.
 
+## 7c. Delivery receipts (contract v3, Vercel)
+
+After a round clears, every buyer redeems a voucher from each provider it bought from with one real inference call, and both sides leave evidence on-chain (RULES.md section 9). The providers' endpoint is the Vercel function `api/provider.ts`, deployed with the site.
+
+**One-time setup in Vercel** (Project → Settings → Environment Variables, environment **Production**, type **Secret**):
+
+1. `PROVIDER_KEYS`: the sellers' testnet keys. Copy them to the clipboard without showing them on screen:
+   ```powershell
+   npm run -s testnet -- provider-keys | Set-Clipboard
+   ```
+   Paste into the value field. These are the testnet seller accounts only, never your mainnet wallet.
+2. `NEARAI_API_KEY`: your NEAR AI Cloud key (the same as in `.env`). Set a spending limit on it at cloud.near.ai.
+3. Redeploy (Deployments → … → Redeploy), because environment changes apply only to new deployments.
+
+Check it: open `https://hivebuy-six.vercel.app/api/provider`. It should list your three sellers and `"inference": true` (it never shows keys).
+
+**Run a round with delivery:**
+
+```powershell
+$env:SKIP_REVEAL = "never"; npm run testnet -- round --scenario multi --delivery; Remove-Item Env:SKIP_REVEAL
+```
+
+If delivery failed (for example the endpoint wasn't configured yet), rerun it for that round: `npm run testnet -- deliver <round>`.
+
 ## 8. Let the agents think with NEAR AI (optional)
 
 1. Create an API key at https://cloud.near.ai (your NEAR Builders credits work here). Set a spending limit on the key.
