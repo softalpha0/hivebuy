@@ -797,7 +797,12 @@ const params = new URLSearchParams(location.search);
 if (params.get('contract')) {
   setTab(true);
   $<HTMLInputElement>('contract').value = params.get('contract')!;
-  void loadNet().then(() => $('app').scrollIntoView({ block: 'start' }));
+  const wanted = Number(params.get('round'));
+  void loadNet().then(() => {
+    const i = rounds.findIndex((r) => r.id === wanted);
+    if (i >= 0) select(i, false);
+    $('app').scrollIntoView({ block: 'start' });
+  });
 } else {
   runSim();
 }

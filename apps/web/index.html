@@ -31,7 +31,7 @@
 
     <main class="wrap">
       <section class="hero">
-        <p class="eyebrow"><span class="live-dot" aria-hidden="true"></span> NEAR Hackathon 2026 · AI Swarms</p>
+        <p class="eyebrow"><span class="live-dot" aria-hidden="true"></span> NEAR Hackathon 2026 · AI Swarms · Agent Economy</p>
         <h1>AI agents buy compute together.</h1>
         <p class="lede">
           Buyer agents pool their demand for inference. Provider agents bid blind. A NEAR contract finds one fair price,
@@ -39,7 +39,7 @@
         </p>
         <div class="hero-actions">
           <a class="btn-primary" href="#app">Try the market</a>
-          <button class="ghost-link" type="button" data-goto="latest">See live AI rounds</button>
+          <button class="ghost-link" type="button" data-goto="11">See a live round shared by two providers</button>
         </div>
       </section>
 
@@ -173,7 +173,7 @@
           <div class="fcell">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" /></svg>
             <h3>Private AI decisions</h3>
-            <p>Agents think with a model on NEAR AI Cloud that runs in a secure enclave. The API key never leaves the operator's machine.</p>
+            <p>Agents think with a model on NEAR AI Cloud that runs in a secure enclave. The API key stays out of the code: in the operator's <code>.env</code>, and as a server-side secret for the delivery endpoint.</p>
           </div>
           <div class="fcell">
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="2.5" /><circle cx="18" cy="6" r="2.5" /><circle cx="18" cy="18" r="2.5" /><path d="M8.3 11l7.4-3.8M8.3 13l7.4 3.8" /></svg>
@@ -199,9 +199,9 @@
             <figcaption><b>seller-2</b> · round 2 · bid 1.29 for exactly 31 units <button class="link" type="button" data-goto="2">See round 2 →</button></figcaption>
           </figure>
           <figure class="card quote">
-            <div class="q-head"><span class="spark" aria-hidden="true">✦</span> Thought before bidding <span class="pill">Lost</span></div>
-            <blockquote>“Demand is highly price-inelastic: 23 of 31 units accept up to 1.47+, and only the 6 units capped at 1.29 drop out above that.”</blockquote>
-            <figcaption><b>seller-1</b> · round 2 · gambled on 1.46 and lost to 1.29 <button class="link" type="button" data-goto="2">See round 2 →</button></figcaption>
+            <div class="q-head"><span class="spark" aria-hidden="true">✦</span> Thought before bidding <span class="pill ok">Shared the order</span></div>
+            <blockquote>“Bidding just under last round's 1.53 clearing price maximizes my chance of winning units profitably.”</blockquote>
+            <figcaption><b>seller-2</b> · round 11 · asked 1.52, sold 18 of 22 units at 1.62 alongside seller-3 <button class="link" type="button" data-goto="11">See round 11 →</button></figcaption>
           </figure>
           <figure class="card quote">
             <div class="q-head"><span class="spark" aria-hidden="true">✦</span> Thought before joining <span class="pill">Left out</span></div>
@@ -254,7 +254,7 @@
       <!-- Closing call to action: big centred headline + pill buttons (EasyUI) -->
       <section class="cta card" aria-labelledby="cta-title">
         <h2 id="cta-title">Agents shouldn't have to buy alone.</h2>
-        <p>Every round above settled on NEAR testnet with real AI agents. Read every line of the market.</p>
+        <p>Watch real AI agents pool demand, share orders and deliver on NEAR testnet, or read every line of the market.</p>
         <div class="cta-actions">
           <button class="primary" type="button" data-goto="latest">See live AI rounds</button>
           <a class="ghost-link" href="https://github.com/softalpha0/hivebuy" target="_blank" rel="noreferrer">Read the code ↗</a>

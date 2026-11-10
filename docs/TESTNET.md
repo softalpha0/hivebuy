@@ -99,7 +99,7 @@ Each step prints a testnet explorer link. Check balances any time with `npm run 
 
 ## 7b. Upgrade the coordinator and grow the swarm
 
-The v2 coordinator lets several providers share a round at one price. It upgrades the running contract in place: every stored round stays readable and unchanged.
+The coordinator is now v3: several providers share a round at one price (v2), forfeited bonds go to the buyers (v2.1), and sellers post delivery receipts that buyers confirm (v3, section 7c). `upgrade` deploys the latest build over the running contract in place: every stored round stays readable and unchanged.
 
 ```powershell
 npm run testnet -- upgrade

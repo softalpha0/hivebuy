@@ -28,7 +28,7 @@ NEAR's own [AI Swarms example](https://github.com/nearai/near-hackathon-prompt-e
 Built for NEAR Hackathon 2026: **AI Swarms** (`swarms`) and **Agent Economy** (`agents`) tracks.
 
 - **Live demo:** https://hivebuy-six.vercel.app
-- **Live round on NEAR testnet:** https://hivebuy-six.vercel.app/?contract=market.hivebuy.testnet
+- **Live rounds on NEAR testnet:** https://hivebuy-six.vercel.app/?contract=market.hivebuy.testnet · a round shared by two providers, with confirmed deliveries: [round 11](https://hivebuy-six.vercel.app/?contract=market.hivebuy.testnet&round=11)
 - **Market rules:** [RULES.md](RULES.md) · **Mechanism notes (design, risks, live data):** [docs/MECHANISM.md](docs/MECHANISM.md)
 - **Demo video:** https://youtu.be/fybUcsyByqI
 
@@ -112,7 +112,7 @@ Run real rounds on NEAR testnet: [docs/TESTNET.md](docs/TESTNET.md).
 
 | NEAR feature | How Hivebuy uses it |
 |---|---|
-| Smart contract (Rust, near-sdk 5) | The coordinator: escrow, sealed bids, clearing and settlement in one atomic step. Upgraded in place to v2 (several providers per round) without losing any stored round |
+| Smart contract (Rust, near-sdk 5) | The coordinator: escrow, sealed bids, clearing and settlement in one atomic step. Upgraded in place three times, to v3 (several providers per round, bonds to buyers, delivery receipts), without losing any stored round |
 | Sub-accounts | One account per agent under one parent, so every bid and payment traces to an agent |
 | NEP-141 + `ft_transfer_call` | Buyers join and fund escrow in one transaction; a failed join is refunded automatically |
 | NEAR bonds (`#[payable]`) | Providers stake a bond with each sealed bid, forfeited if they don't reveal |
@@ -143,7 +143,7 @@ Run real rounds on NEAR testnet: [docs/TESTNET.md](docs/TESTNET.md).
 - **Dates:** November 1–14, 2026, during NEAR Hackathon 2026. Repository history: 26 commits from November 2 to November 10 so far.
 - **First commit (Nov 2):** a large initial scaffold (46 files) produced with AI assistance from the plan in [docs/PLAN.md](docs/PLAN.md): the rules, the contract, the TypeScript engine, the simulation and the live page, all with tests. About half of its lines are `package-lock.json`.
 - **Every later commit is incremental:** live testnet rounds, AI agents, several providers per round, browser verification, bonds to buyers, the live view, CI and the reproducible report, the rules mapped to tests, the mechanism notes, delivery receipts.
-- **The contract was upgraded in place four times** on testnet (v1 → v2 several providers → v2.1 bonds to buyers → v3 delivery receipts). Each upgrade reads every stored round back and stops if one changed; the 12 live rounds are all still there.
+- **The contract was upgraded in place three times** on testnet (v1 → v2 several providers → v2.1 bonds to buyers → v3 delivery receipts). Each upgrade reads every stored round back and stops if one changed; the 12 live rounds are all still there.
 
 ## Hackathon disclosure
 
