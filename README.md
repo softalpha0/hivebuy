@@ -30,7 +30,7 @@ Built for NEAR Hackathon 2026: **AI Swarms** (`swarms`) and **Agent Economy** (`
 - **Live demo:** https://hivebuy-six.vercel.app
 - **Live rounds on NEAR testnet:** https://hivebuy-six.vercel.app/?contract=market.hivebuy.testnet · a round shared by two providers, with confirmed deliveries: [round 11](https://hivebuy-six.vercel.app/?contract=market.hivebuy.testnet&round=11)
 - **Market rules:** [RULES.md](RULES.md) · **Mechanism notes (design, risks, live data):** [docs/MECHANISM.md](docs/MECHANISM.md)
-- **Demo video:** https://youtu.be/fybUcsyByqI
+- **Demo video:** https://youtu.be/DLvLYJlZCOk
 
 ![Hivebuy live page: a cleared round with sealed and revealed bids](docs/screenshots/simulation.png)
 
