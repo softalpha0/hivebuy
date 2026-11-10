@@ -66,7 +66,7 @@ Requires Node.js 20 or newer and Rust (for the contract tests; see [docs/TESTNET
 
 ```powershell
 npm ci
-npm run verify   # 39 TypeScript tests, typecheck, 19 contract tests, then reprints the README's simulated numbers
+npm run verify   # 43 TypeScript tests, typecheck, 27 contract tests, then reprints the README's simulated numbers
 ```
 
 `npm run verify` ends by printing the headline above and regenerating [docs/RESULTS.md](docs/RESULTS.md); a test fails if the README, the landing page or that file disagree with the simulation. CI runs the same command on every push.

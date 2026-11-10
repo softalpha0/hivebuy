@@ -346,3 +346,107 @@ fn shared_clearing_vectors() {
         }
     }
 }
+
+// ---------- RULES.md gaps (F5): each rule names the test that proves it ----------
+
+/// Runs `f` and reports whether it panicked, so a test can continue after a rejected call.
+fn rejected(f: impl FnOnce()) -> bool {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).is_err()
+}
+
+#[test]
+fn reveal_mismatch_can_retry() {
+    let mut m = setup();
+    commit(&mut m, "s1.testnet", 1_000_000, 10, "x1");
+    // A wrong reveal is rejected and changes nothing...
+    assert!(rejected(|| reveal(&mut m, "s1.testnet", 999_999, 10, "x1")));
+    assert!(m.get_round(1).unwrap().round.sellers[0].revealed.is_none());
+    // ...so the seller can still reveal correctly before reveal_end.
+    reveal(&mut m, "s1.testnet", 1_000_000, 10, "x1");
+    assert!(m.get_round(1).unwrap().round.sellers[0].revealed.is_some());
+}
+
+#[test]
+fn salt_longer_than_64_chars_is_rejected() {
+    let mut m = setup();
+    let long = "a".repeat(65);
+    commit(&mut m, "s1.testnet", 1_000_000, 10, &long);
+    assert!(rejected(|| reveal(&mut m, "s1.testnet", 1_000_000, 10, &long)));
+    // Exactly 64 characters (multi-byte included) is fine.
+    let ok = "é".repeat(64);
+    commit(&mut m, "s2.testnet", 1_000_000, 10, &ok);
+    reveal(&mut m, "s2.testnet", 1_000_000, 10, &ok);
+    assert!(m.get_round(1).unwrap().round.sellers[1].revealed.is_some());
+}
+
+#[test]
+fn deadlines_are_strictly_ordered() {
+    let m = setup();
+    let r = m.get_round(1).unwrap().round;
+    assert!(START < r.join_end.0 && r.join_end.0 < r.commit_end.0 && r.commit_end.0 < r.reveal_end.0);
+    let mut m = m;
+    ctx("hivebuy.testnet", START, 0);
+    assert!(rejected(|| {
+        m.open_round("x".into(), 0, 60, 60, U128(BOND));
+    }));
+}
+
+#[test]
+fn bond_split_ignores_buyers_who_left() {
+    let mut m = setup();
+    join(&mut m, "a.testnet", 2, 1_000_000);
+    join(&mut m, "b.testnet", 8, 1_000_000);
+    ctx("b.testnet", START + 2 * SEC, 0);
+    m.leave_round(1);
+    commit(&mut m, "ghost.testnet", 900_000, 10, "x");
+    clear_now(&mut m);
+    let shares = m.get_round(1).unwrap().bond_shares;
+    assert_eq!(shares.len(), 1);
+    assert_eq!(shares[0].account_id, acc("a.testnet"));
+    assert_eq!(shares[0].amount.0, BOND);
+}
+
+#[test]
+fn failed_round_still_pays_forfeited_bonds_to_buyers() {
+    let mut m = setup();
+    join(&mut m, "a.testnet", 50, 2_000_000);
+    commit(&mut m, "s1.testnet", 1_000_000, 10, "x1");
+    commit(&mut m, "ghost.testnet", 900_000, 10, "x2");
+    reveal(&mut m, "s1.testnet", 1_000_000, 10, "x1");
+    let out = clear_now(&mut m);
+    assert!(out.winner.is_none());
+    let view = m.get_round(1).unwrap();
+    assert_eq!(view.round.status, RoundStatus::Failed);
+    assert_eq!(view.bond_shares[0].amount.0, BOND);
+    assert_eq!(m.credit_of(acc("a.testnet")).0, 100_000_000);
+}
+
+#[test]
+#[should_panic(expected = "Round is full")]
+fn round_full_rejects_51st_buyer() {
+    let mut m = setup();
+    for i in 0..=MAX_BUYERS {
+        join(&mut m, &format!("b{i}.testnet"), 1, 1_000_000);
+    }
+}
+
+#[test]
+#[should_panic(expected = "Round is full")]
+fn round_full_rejects_11th_seller() {
+    let mut m = setup();
+    for i in 0..=MAX_SELLERS {
+        commit(&mut m, &format!("s{i}.testnet"), 1_000_000, 1, "x");
+    }
+}
+
+#[test]
+fn clear_is_permissionless_after_reveal_end() {
+    let mut m = setup();
+    join(&mut m, "a.testnet", 1, 2_000_000);
+    commit(&mut m, "s1.testnet", 1_000_000, 10, "x1");
+    reveal(&mut m, "s1.testnet", 1_000_000, 10, "x1");
+    // Long after reveal_end, any account (here: the buyer itself) can clear.
+    ctx("a.testnet", START + 181 * SEC + 3_600 * SEC, 0);
+    m.clear(1);
+    assert_eq!(m.get_round(1).unwrap().round.status, RoundStatus::Cleared);
+}

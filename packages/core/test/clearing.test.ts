@@ -40,6 +40,15 @@ describe('commitment hash (shared vectors)', () => {
   }
 });
 
+describe('commitment salt (RULES.md section 3)', () => {
+  it('accepts 1-64 characters and rejects the rest, like the contract', () => {
+    expect(commitment(1, 's.testnet', 1n, 1, 'a'.repeat(64))).toHaveLength(64);
+    expect(commitment(1, 's.testnet', 1n, 1, 'é'.repeat(64))).toHaveLength(64);
+    expect(() => commitment(1, 's.testnet', 1n, 1, 'a'.repeat(65))).toThrow(/1-64/);
+    expect(() => commitment(1, 's.testnet', 1n, 1, '')).toThrow(/1-64/);
+  });
+});
+
 describe('clearing rule (shared vectors)', () => {
   for (const v of vectors.clearing) {
     it(v.name, () => {

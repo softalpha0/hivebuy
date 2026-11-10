@@ -1,0 +1,5 @@
+# Keep LF everywhere, so a Windows clone has byte-identical files (docs/RESULTS.md is checked by tests and CI).
+* text=auto eol=lf
+*.wasm binary
+*.png binary
+*.jpg binary

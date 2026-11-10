@@ -271,8 +271,26 @@ async function pickBrain(): Promise<Brain> {
   return nearAiBrain(client);
 }
 
+const STALE_MS = 60 * 60 * 1000;
+
+/**
+ * RULES.md section 3: clear() is permissionless after reveal_end. If a round is still open more
+ * than an hour after its reveal_end (the operator never cleared it), a buyer agent clears it, so
+ * escrow is never stuck. Runs before every new round and on `status`.
+ */
+async function clearStaleRounds(s: State) {
+  const rounds = await view<ContractRound[]>(s.market.id, 'get_latest_rounds', { limit: 20 });
+  for (const r of rounds) {
+    if (r.outcome !== null || Date.now() < Number(BigInt(r.reveal_end) / 1_000_000n) + STALE_MS) continue;
+    const buyer = s.buyers.find((b) => r.buyers.some((x) => x.account_id === b.id)) ?? s.buyers[0]!;
+    const res = await account(buyer.id, buyer.key).callFunctionRaw({ contractId: s.market.id, methodName: 'clear', args: { round_id: r.id }, gas: teraToGas('100') });
+    console.log(`Round ${r.id} was left open over an hour after its reveal phase: ${short(buyer.id)} cleared it  ${txLink(res)}`);
+  }
+}
+
 async function round() {
   const s = loadState();
+  await clearStaleRounds(s);
   const phase = Number(process.env.PHASE_SECS ?? 30);
   const brain = await pickBrain();
   const p = parent();
@@ -453,6 +471,7 @@ function saveNotes(contract: string, roundId: number, notes: RoundNotes): string
 
 async function status() {
   const s = loadState();
+  await clearStaleRounds(s);
   const cfg = await view<{ next_round_id: number; treasury: string }>(s.market.id, 'get_config');
   console.log(`Coordinator ${s.market.id} · token ${s.token} · rounds opened: ${cfg.next_round_id - 1}`);
   for (const a of [...s.buyers, ...s.sellers]) {

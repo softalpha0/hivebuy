@@ -23,6 +23,8 @@ use near_sdk::{
 
 pub const MAX_BUYERS: usize = 50;
 pub const MAX_SELLERS: usize = 10;
+/// RULES.md section 3: the salt in a commitment is 1-64 characters (32 random hex characters recommended).
+pub const MAX_SALT_CHARS: usize = 64;
 const NANOS_PER_SEC: u64 = 1_000_000_000;
 const GAS_FT_TRANSFER: Gas = Gas::from_tgas(10);
 const GAS_ON_WITHDRAW: Gas = Gas::from_tgas(10);
@@ -273,6 +275,7 @@ impl Market {
         require!(round.status == RoundStatus::Open, "Round is closed");
         require!(now >= round.commit_end.0 && now < round.reveal_end.0, "Not in the reveal phase");
         require!(price.0 > 0 && capacity > 0, "Price and capacity must be positive");
+        require!(!salt.is_empty() && salt.chars().count() <= MAX_SALT_CHARS, "Salt must be 1-64 characters");
         let seller = round
             .sellers
             .iter_mut()

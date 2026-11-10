@@ -5,6 +5,8 @@ import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils';
 export type Amount = bigint;
 
 export const USDC_DECIMALS = 6;
+/** Longest salt the contract accepts in a reveal (RULES.md section 3). */
+export const MAX_SALT_CHARS = 64;
 
 export interface Buyer {
   id: string;
@@ -63,6 +65,9 @@ export function commitment(
   capacity: number,
   salt: string,
 ): string {
+  // RULES.md section 3: the contract rejects a reveal whose salt is empty or longer than 64 characters.
+  const len = [...salt].length;
+  if (len < 1 || len > MAX_SALT_CHARS) throw new Error(`Salt must be 1-${MAX_SALT_CHARS} characters, got ${len}`);
   return bytesToHex(sha256(utf8ToBytes(`${roundId}:${sellerId}:${price}:${capacity}:${salt}`)));
 }
 
