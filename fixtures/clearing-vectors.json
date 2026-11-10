@@ -86,6 +86,26 @@
             "pay": "0",
             "refund": "24000000"
           }
+        ],
+        "payments": [
+          {
+            "buyer": "a",
+            "seller": "s1",
+            "units": 10,
+            "amount": "14000000"
+          },
+          {
+            "buyer": "b",
+            "seller": "s1",
+            "units": 10,
+            "amount": "14000000"
+          },
+          {
+            "buyer": "b",
+            "seller": "s2",
+            "units": 5,
+            "amount": "7000000"
+          }
         ]
       }
     },
@@ -158,6 +178,20 @@
             "included": false,
             "pay": "0",
             "refund": "24000000"
+          }
+        ],
+        "payments": [
+          {
+            "buyer": "a",
+            "seller": "s1",
+            "units": 10,
+            "amount": "14000000"
+          },
+          {
+            "buyer": "b",
+            "seller": "s1",
+            "units": 5,
+            "amount": "7000000"
           }
         ]
       }
@@ -259,6 +293,38 @@
             "pay": "0",
             "refund": "7500000"
           }
+        ],
+        "payments": [
+          {
+            "buyer": "x",
+            "seller": "s1",
+            "units": 3,
+            "amount": "3990000"
+          },
+          {
+            "buyer": "y",
+            "seller": "s1",
+            "units": 8,
+            "amount": "10640000"
+          },
+          {
+            "buyer": "z",
+            "seller": "s1",
+            "units": 8,
+            "amount": "10640000"
+          },
+          {
+            "buyer": "w",
+            "seller": "s1",
+            "units": 8,
+            "amount": "10640000"
+          },
+          {
+            "buyer": "v",
+            "seller": "s1",
+            "units": 8,
+            "amount": "10640000"
+          }
         ]
       }
     },
@@ -315,6 +381,20 @@
             "pay": "3200000",
             "refund": "400000"
           }
+        ],
+        "payments": [
+          {
+            "buyer": "a",
+            "seller": "s1",
+            "units": 3,
+            "amount": "2400000"
+          },
+          {
+            "buyer": "b",
+            "seller": "s1",
+            "units": 4,
+            "amount": "3200000"
+          }
         ]
       }
     },
@@ -359,6 +439,14 @@
             "included": true,
             "pay": "4500000",
             "refund": "500000"
+          }
+        ],
+        "payments": [
+          {
+            "buyer": "a",
+            "seller": "early",
+            "units": 5,
+            "amount": "4500000"
           }
         ]
       }
@@ -410,6 +498,14 @@
             "pay": "0",
             "refund": "1999998"
           }
+        ],
+        "payments": [
+          {
+            "buyer": "a",
+            "seller": "s1",
+            "units": 2,
+            "amount": "2000000"
+          }
         ]
       }
     },
@@ -460,6 +556,20 @@
             "pay": "75000000",
             "refund": "25000000"
           }
+        ],
+        "payments": [
+          {
+            "buyer": "a",
+            "seller": "s1",
+            "units": 10,
+            "amount": "15000000"
+          },
+          {
+            "buyer": "a",
+            "seller": "s2",
+            "units": 40,
+            "amount": "60000000"
+          }
         ]
       }
     },
@@ -493,7 +603,8 @@
             "pay": "0",
             "refund": "500000"
           }
-        ]
+        ],
+        "payments": []
       }
     },
     {
@@ -519,7 +630,8 @@
             "pay": "0",
             "refund": "500000"
           }
-        ]
+        ],
+        "payments": []
       }
     },
     {
@@ -539,7 +651,8 @@
         "demand": 0,
         "price_set_by": null,
         "fills": [],
-        "settlements": []
+        "settlements": [],
+        "payments": []
       }
     },
     {
@@ -578,7 +691,8 @@
             "pay": "0",
             "refund": "100000000"
           }
-        ]
+        ],
+        "payments": []
       }
     },
     {
@@ -650,6 +764,32 @@
             "pay": "9600000",
             "refund": "400000"
           }
+        ],
+        "payments": [
+          {
+            "buyer": "a",
+            "seller": "s1",
+            "units": 5,
+            "amount": "6000000"
+          },
+          {
+            "buyer": "a",
+            "seller": "s2",
+            "units": 4,
+            "amount": "4800000"
+          },
+          {
+            "buyer": "a",
+            "seller": "s3",
+            "units": 3,
+            "amount": "3600000"
+          },
+          {
+            "buyer": "b",
+            "seller": "s3",
+            "units": 8,
+            "amount": "9600000"
+          }
         ]
       }
     },
@@ -699,6 +839,20 @@
             "included": true,
             "pay": "27000000",
             "refund": "3000000"
+          }
+        ],
+        "payments": [
+          {
+            "buyer": "a",
+            "seller": "early",
+            "units": 15,
+            "amount": "13500000"
+          },
+          {
+            "buyer": "a",
+            "seller": "late",
+            "units": 15,
+            "amount": "13500000"
           }
         ]
       }
