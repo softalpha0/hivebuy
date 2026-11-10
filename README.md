@@ -7,7 +7,7 @@
 **17% more compute bought than a one-winner market, and buyers paid 40% less than the most they offered (200 simulated rounds, seeds 42, 7, 123, 2026).** Reproduce: `npm run sim -- --report` · full table: [docs/RESULTS.md](docs/RESULTS.md).
 
 <!-- live:start -->
-**Live on NEAR testnet:** +27% more compute than a one-winner market, buyers paid 14% below their max, 3 of 10 rounds shared by 2+ providers (10 live testnet rounds on market.hivebuy.testnet, as of 2026-11-10). Every round: [docs/LIVE.md](docs/LIVE.md).
+**Live on NEAR testnet:** +34% more compute than a one-winner market, buyers paid 13% below their max, 4 of 12 rounds shared by 2+ providers (12 live testnet rounds on market.hivebuy.testnet, as of 2026-11-10). Every round: [docs/LIVE.md](docs/LIVE.md).
 <!-- live:end -->
 
 What makes it different:

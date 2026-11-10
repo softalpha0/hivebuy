@@ -550,6 +550,260 @@
           "revealed": true
         }
       }
+    },
+    "11": {
+      "brain": "nearai:z-ai/glm-5.3-flash",
+      "scenario": "multi",
+      "skipReveal": "never",
+      "info": "full",
+      "buyers": {
+        "buyer-10.hivebuy.testnet": {
+          "reasoning": "Bid true value 1.83 for both units; clearing price never exceeds max_price.",
+          "source": "ai"
+        },
+        "buyer-9.hivebuy.testnet": {
+          "reasoning": "Bid full need at true value 1.63, the budget cap, maximizing inclusion without overpaying.",
+          "source": "ai"
+        },
+        "buyer-2.hivebuy.testnet": {
+          "reasoning": "Bid my true value 1.33 since paying more would lose money.",
+          "source": "ai"
+        },
+        "buyer-6.hivebuy.testnet": {
+          "reasoning": "Bidding full value 1.68 maximizes inclusion chance while never paying above value.",
+          "source": "ai"
+        },
+        "buyer-8.hivebuy.testnet": {
+          "reasoning": "Bid my full value 1.63 for both units to maximize inclusion within budget.",
+          "source": "ai"
+        },
+        "buyer-1.hivebuy.testnet": {
+          "reasoning": "Bid true value 1.77 per unit; last round cleared at 1.53, so inclusion likely.",
+          "source": "ai"
+        },
+        "buyer-7.hivebuy.testnet": {
+          "reasoning": "Bid above last round's 1.53 clearing price to stay included while capping payment below my 1.89 value.",
+          "source": "ai"
+        },
+        "buyer-3.hivebuy.testnet": {
+          "reasoning": "Bid full need of 5 at my true value 1.79, within budget.",
+          "source": "ai"
+        },
+        "buyer-4.hivebuy.testnet": {
+          "reasoning": "Set max_price equal to my 1.34 unit value so I never overpay.",
+          "source": "ai"
+        },
+        "buyer-5.hivebuy.testnet": {
+          "reasoning": "Bid my full per-unit value 1.67 to maximize inclusion without overpaying.",
+          "source": "ai"
+        }
+      },
+      "sellers": {
+        "seller-1.hivebuy.testnet": {
+          "reasoning": "Pricing just below 1.63 keeps me cheapest so I win all 17 units at high clearing prices.",
+          "source": "ai",
+          "revealed": true
+        },
+        "seller-2.hivebuy.testnet": {
+          "reasoning": "Bidding just under last round's 1.53 clearing price maximizes my chance of winning units profitably.",
+          "source": "ai",
+          "revealed": true
+        },
+        "seller-3.hivebuy.testnet": {
+          "reasoning": "Bidding 1.62 undercuts rivals near 1.53 to win cheap-seller priority at high clearing prices.",
+          "source": "ai",
+          "revealed": true
+        }
+      },
+      "deliveries": [
+        {
+          "seller": "seller-2.hivebuy.testnet",
+          "buyer": "buyer-5.hivebuy.testnet",
+          "units": 2,
+          "prompt": "In one sentence, what is a uniform-price auction?",
+          "snippet": "A uniform-price auction is a multi-unit auction in which all winning bidders pay the same price per unit—typically the highest losing bid, or \"clearing price\"—r",
+          "status": "confirmed",
+          "postTx": "3Jn9bzuxV9a85kDrRvw7AP7Fhgm18zndd9KtNBEYf7ZH",
+          "confirmTx": "qmH7hjyQiw7RrmVJWeovSRGvba5cB5k4dxXymsY5fKu"
+        },
+        {
+          "seller": "seller-2.hivebuy.testnet",
+          "buyer": "buyer-3.hivebuy.testnet",
+          "units": 5,
+          "prompt": "In one sentence, why do sealed bids stop copying?",
+          "snippet": "Sealed bids stop copying because bidders submit their offers privately and simultaneously without seeing anyone else's bid, so there's no information available ",
+          "status": "confirmed",
+          "postTx": "EM8eu7VqDaE4GJSTyzk72z4FA6nWPaK52w7q5EcTbBXH",
+          "confirmTx": "5imJ2zLzJTcpZxCxahhmgCnpzecvdjUoNdC5G31iwYLE"
+        },
+        {
+          "seller": "seller-2.hivebuy.testnet",
+          "buyer": "buyer-10.hivebuy.testnet",
+          "units": 2,
+          "prompt": "In one sentence, what does an escrow do?",
+          "snippet": "An escrow is a neutral third party that holds funds or assets on behalf of two transacting parties and releases them only once all agreed-upon conditions of the",
+          "status": "confirmed",
+          "postTx": "88qaYhK6dg7KFEVRjMUnXnzh2MnXF8ihFUJQRFCK6DG2",
+          "confirmTx": "6qKzwoaR7cVWj3U5vCarA5qj6myCmJzGh6oPeVEAM8BM"
+        },
+        {
+          "seller": "seller-2.hivebuy.testnet",
+          "buyer": "buyer-6.hivebuy.testnet",
+          "units": 2,
+          "prompt": "In one sentence, what is a NEAR sub-account?",
+          "snippet": "A NEAR sub-account is an account created under another account's naming hierarchy (e.g., `app.example.near` under `example.near`) that, once created by its pare",
+          "status": "confirmed",
+          "postTx": "DB62y4vS59yxVsn4TTDP2CcWbLzghd5TWzXBDAvw6w5u",
+          "confirmTx": "FKUHSqasd1cA4w1CWfUJtKoPBTib9K1Ss7kmYus7PJdG"
+        },
+        {
+          "seller": "seller-2.hivebuy.testnet",
+          "buyer": "buyer-1.hivebuy.testnet",
+          "units": 2,
+          "prompt": "In one sentence, why do buyers pool demand?",
+          "snippet": "Buyers pool demand to combine their purchasing volume, which increases their collective bargaining power and lets them negotiate lower prices or better terms th",
+          "status": "confirmed",
+          "postTx": "4D7D4eYRtgN5otks8i6yebjLbNMFvPfSkwSx5WdieKCW",
+          "confirmTx": "8Vrq3G4j5yMyy3WjzeGCa3uBPsYZSP75gG6kVjbZs8bM"
+        },
+        {
+          "seller": "seller-2.hivebuy.testnet",
+          "buyer": "buyer-8.hivebuy.testnet",
+          "units": 2,
+          "prompt": "In one sentence, what is a uniform-price auction?",
+          "snippet": "A uniform-price auction is an auction in which multiple identical items are sold and all winning bidders pay the same price per unit—typically the highest losin",
+          "status": "confirmed",
+          "postTx": "Faud17KsmWy2CDNgeEKhuQTGpZf1phk5fPj1DzUrwYgP",
+          "confirmTx": "CC7Sa1bm5idpadGbAJvJvKDJjTFPmNFKeSWra9Q2mWHz"
+        },
+        {
+          "seller": "seller-2.hivebuy.testnet",
+          "buyer": "buyer-9.hivebuy.testnet",
+          "units": 3,
+          "prompt": "In one sentence, why do sealed bids stop copying?",
+          "snippet": "Sealed bids stop copying because each bidder submits their offer privately and simultaneously, without seeing what anyone else has bid — so there's nothing visi",
+          "status": "confirmed",
+          "postTx": "ELFL3U11ByRGkw5AQYkwum1cPpkF4T89QBcaMTK1JD9U",
+          "confirmTx": "2gAXMfKRQLUi6QorER9CsaX9QNgTVk6FEBQtWqqEPmuJ"
+        },
+        {
+          "seller": "seller-3.hivebuy.testnet",
+          "buyer": "buyer-9.hivebuy.testnet",
+          "units": 1,
+          "prompt": "In one sentence, what does an escrow do?",
+          "snippet": "An escrow is a neutral third party that holds funds or assets on behalf of two transacting parties and releases them only once all agreed-upon conditions of the",
+          "status": "confirmed",
+          "postTx": "9THs8eMcbECgy2haS3W6HukT257nHKRCLdJC4TUXVwHU",
+          "confirmTx": "Gu4Dns7rUcUJbjh6bjjf9W28AEe8dzezhydBamK1Najj"
+        },
+        {
+          "seller": "seller-3.hivebuy.testnet",
+          "buyer": "buyer-7.hivebuy.testnet",
+          "units": 3,
+          "prompt": "In one sentence, what is a NEAR sub-account?",
+          "snippet": "A NEAR sub-account is an account whose name extends a parent account's name (e.g., `app.example.near` under `example.near`), which can only be created by its pa",
+          "status": "confirmed",
+          "postTx": "9nzKYr7V95YtQLRzdRzVou6ZeBHtd8p4Y3eFDHui3gnt",
+          "confirmTx": "ARoeLPJYPuE3jhZHezmUTAZHdWJt5beJCaha8EppeqB7"
+        }
+      ]
+    },
+    "12": {
+      "brain": "nearai:z-ai/glm-5.3-flash",
+      "scenario": "multi",
+      "skipReveal": "never",
+      "info": "full",
+      "buyers": {
+        "buyer-4.hivebuy.testnet": {
+          "reasoning": "Capping at per-unit value avoids paying above 1.61 if clearing price rises.",
+          "source": "ai"
+        },
+        "buyer-6.hivebuy.testnet": {
+          "reasoning": "Bid true value 1.76 for 8 units; I never pay above clearing price.",
+          "source": "ai"
+        },
+        "buyer-5.hivebuy.testnet": {
+          "reasoning": "Bidding my true 1.13 valuation is safe since I never pay above clearing price.",
+          "source": "ai"
+        },
+        "buyer-8.hivebuy.testnet": {
+          "reasoning": "Value is 1.01, so bid 5 × 1.01 using full budget; exclusion risks nothing.",
+          "source": "ai"
+        },
+        "buyer-7.hivebuy.testnet": {
+          "reasoning": "Bidding my true value avoids paying above it while keeping inclusion when clearing is favorable.",
+          "source": "ai"
+        },
+        "buyer-9.hivebuy.testnet": {
+          "reasoning": "Bid my true value 1.18 so any clearing above it excludes me safely.",
+          "source": "ai"
+        },
+        "buyer-2.hivebuy.testnet": {
+          "reasoning": "Previous clear of 1.62 exceeds my 1.56 value, so I cap at value.",
+          "source": "ai"
+        },
+        "buyer-10.hivebuy.testnet": {
+          "reasoning": "Bid my true value 1.54; clearing price can't exceed my max, so inclusion is never unprofitable.",
+          "source": "ai"
+        },
+        "buyer-1.hivebuy.testnet": {
+          "reasoning": "Bid my full value 1.84 for all 8 units to maximize inclusion risk-free.",
+          "source": "ai"
+        },
+        "buyer-3.hivebuy.testnet": {
+          "reasoning": "Clearing at 1.62 exceeded my 1.40 value, so I cap bids at value.",
+          "source": "ai"
+        }
+      },
+      "sellers": {
+        "seller-1.hivebuy.testnet": {
+          "reasoning": "Bidding 1.76 lets me win 16 high-value units at a strong clearing price above my 1.12 cost.",
+          "source": "ai",
+          "revealed": true
+        },
+        "seller-2.hivebuy.testnet": {
+          "reasoning": "Pricing just above cost wins cheap-first allocation while staying below most buyer maxima.",
+          "source": "ai",
+          "revealed": true
+        },
+        "seller-3.hivebuy.testnet": {
+          "reasoning": "Bidding just below last round's 1.62 clears high demand while staying competitive.",
+          "source": "ai",
+          "revealed": true
+        }
+      },
+      "deliveries": [
+        {
+          "seller": "seller-2.hivebuy.testnet",
+          "buyer": "buyer-4.hivebuy.testnet",
+          "units": 2,
+          "prompt": "In one sentence, what is a uniform-price auction?",
+          "snippet": "A uniform-price auction is an auction format in which multiple identical items are sold and all winning bidders pay the same price per unit—typically set at the",
+          "status": "confirmed",
+          "postTx": "CpKZVNtNFUVSXzF37HViEG6ghmkFgwwU6pHwTeva3ZGe",
+          "confirmTx": "5dnTr3tbBSdwiAFPo4gJSA6y46goVx92ucmBCeGvgsmq"
+        },
+        {
+          "seller": "seller-2.hivebuy.testnet",
+          "buyer": "buyer-6.hivebuy.testnet",
+          "units": 8,
+          "prompt": "In one sentence, why do sealed bids stop copying?",
+          "snippet": "Sealed bids stop copying because bidders submit their offers simultaneously and privately, without seeing what others have bid, so there is no information avail",
+          "status": "confirmed",
+          "postTx": "Cnjv8qwUt3QKdEwkpa5F2aRChLFAWQSoXYEKX46Mqiav",
+          "confirmTx": "5SKwSW81UkhskdG9qbRx7LcyoWJVT2b6EweJQPnhBwK4"
+        },
+        {
+          "seller": "seller-2.hivebuy.testnet",
+          "buyer": "buyer-1.hivebuy.testnet",
+          "units": 8,
+          "prompt": "In one sentence, what does an escrow do?",
+          "snippet": "An escrow is a neutral third party that holds funds or assets on behalf of two transacting parties and releases them only once all the agreed-upon conditions of",
+          "status": "confirmed",
+          "postTx": "9XdVPYBtQPSNTEKZazjHa1g5qcorstF6j6sxyvrmhrLf",
+          "confirmTx": "BwAPdTqcaNqMAFiMFtin45oWU7R4K6ADjb1XrK6M9bYa"
+        }
+      ]
     }
   }
 }
