@@ -6,6 +6,10 @@
 
 **17% more compute bought than a one-winner market, and buyers paid 40% less than the most they offered (200 simulated rounds, seeds 42, 7, 123, 2026).** Reproduce: `npm run sim -- --report` · full table: [docs/RESULTS.md](docs/RESULTS.md).
 
+<!-- live:start -->
+**Live on NEAR testnet:** +4% more compute than a one-winner market, buyers paid 16% below their max, 0 of 6 rounds shared by 2+ providers (6 live testnet rounds on market.hivebuy.testnet, as of 2026-11-10). Every round: [docs/LIVE.md](docs/LIVE.md).
+<!-- live:end -->
+
 What makes it different:
 
 - **Real AI agents.** Every buyer and provider decides with a model on NEAR AI Cloud (`z-ai/glm-5.3-flash`, private inference in a TEE), and its reasoning is published next to its bid.

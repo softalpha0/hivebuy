@@ -24,6 +24,8 @@ function summarize(rounds: readonly RoundRecord[]) {
 export interface SimReport {
   /** One line, quoted verbatim in the README (a test checks it). */
   headline: string;
+  /** The simulated column of the landing page's "Simulated vs live" table (a test checks it). */
+  cells: { rounds: string; more: string; below: string; multi: string; forfeits: string };
   /** Full contents of docs/RESULTS.md. */
   markdown: string;
 }
@@ -60,5 +62,12 @@ ${rows}
 
 Live testnet numbers are computed from the contract on the live page, not here.
 `;
-  return { headline: line, markdown };
+  const cells = {
+    rounds: String(all.cleared),
+    more: `+${pct(all.moreUnits)}`,
+    below: pct(all.belowMax),
+    multi: String(all.multiWinner),
+    forfeits: String(all.forfeits),
+  };
+  return { headline: line, cells, markdown };
 }

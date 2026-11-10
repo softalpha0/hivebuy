@@ -17,6 +17,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "verify": "npm test && npm run typecheck && npm run contract:test && npm run sim -- --report",
     "sim": "tsx packages/sim/src/cli.ts",
+    "live:report": "tsx scripts/live-report.ts",
     "dev": "npm run dev -w apps/web",
     "build": "npm run build -w apps/web",
     "preview": "npm run preview -w apps/web",

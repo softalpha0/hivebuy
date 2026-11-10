@@ -13,6 +13,12 @@
  * default is the scripted rules. Each round's reasoning is saved to apps/web/public/agent-notes/.
  *
  * BUYERS=10 npm run testnet -- setup adds buyer-6 … buyer-10 to an existing setup; the next round uses them all.
+ *
+ * Round options:
+ *   --scenario multi   each provider can offer only 40-70% of the units buyers locked, so no single provider can
+ *                      fill the round and several must share it (default: each offers 15-45 units).
+ *   SKIP_REVEAL=never|random|always   whether the test agent (the last seller) skips its reveal to show the bond
+ *                      forfeit. Default random (half the time). Every other seller always reveals.
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -273,6 +279,36 @@ async function pickBrain(): Promise<Brain> {
 
 const STALE_MS = 60 * 60 * 1000;
 
+type Scenario = 'default' | 'multi';
+type SkipMode = 'never' | 'random' | 'always';
+
+function flag(name: string): string | undefined {
+  const i = process.argv.indexOf(`--${name}`);
+  return i >= 0 ? process.argv[i + 1] : undefined;
+}
+
+function scenario(): Scenario {
+  const v = flag('scenario') ?? 'default';
+  if (v !== 'default' && v !== 'multi') throw new Error(`--scenario must be default or multi, got "${v}"`);
+  return v;
+}
+
+function skipMode(): SkipMode {
+  // Older docs used SKIP_REVEAL=1 for "always".
+  const v = process.env.SKIP_REVEAL === '1' ? 'always' : (process.env.SKIP_REVEAL ?? 'random');
+  if (v !== 'never' && v !== 'random' && v !== 'always') throw new Error(`SKIP_REVEAL must be never, random or always, got "${v}"`);
+  return v;
+}
+
+/**
+ * Capacity a provider may offer this round. In the multi scenario it is 40-70% of every unit buyers
+ * locked, so even the cheapest provider cannot serve everyone alone.
+ */
+function capacityLimit(sc: Scenario, unitsLocked: number, rand: (lo: number, hi: number) => number): number {
+  if (sc === 'multi') return Math.max(1, Math.floor(unitsLocked * rand(0.4, 0.7)));
+  return Math.floor(rand(15, 45));
+}
+
 /**
  * RULES.md section 3: clear() is permissionless after reveal_end. If a round is still open more
  * than an hour after its reveal_end (the operator never cleared it), a buyer agent clears it, so
@@ -290,6 +326,8 @@ async function clearStaleRounds(s: State) {
 
 async function round() {
   const s = loadState();
+  const sc = scenario();
+  const skip = skipMode();
   await clearStaleRounds(s);
   const phase = Number(process.env.PHASE_SECS ?? 30);
   const brain = await pickBrain();
@@ -304,7 +342,7 @@ async function round() {
 
   // Buyers decide before the round opens (they only need the last price), so slow model
   // answers never eat into the join phase.
-  const notes: RoundNotes = { brain: brain.name, buyers: {}, sellers: {} };
+  const notes: RoundNotes = { brain: brain.name, scenario: sc, skipReveal: skip, buyers: {}, sellers: {} };
   console.log(`Agents deciding (${brain.name})…`);
   const orders = (
     await Promise.all(
@@ -324,7 +362,7 @@ async function round() {
     )
   ).filter((x) => x !== null);
 
-  console.log(`Opening a round on ${s.market.id} (${phase}s per phase, agents: ${brain.name})…`);
+  console.log(`Opening a round on ${s.market.id} (${phase}s per phase, agents: ${brain.name}, scenario: ${sc}, test agent skips reveal: ${skip})…`);
   const roundId = await p.callFunction<number>({
     contractId: s.market.id,
     methodName: 'open_round',
@@ -370,7 +408,8 @@ async function round() {
   const demand = joined.buyers.map((x) => ({ qty: x.qty, maxPrice: BigInt(x.max_price) }));
   const bids = await Promise.all(
     s.sellers.map(async (sel, i) => {
-      const profile = { id: sel.id, cost: usdc(rand(0.8, 1.2)), capacity: Math.floor(rand(15, 45)) };
+      const unitsLocked = demand.reduce((a, x) => a + x.qty, 0);
+      const profile = { id: sel.id, cost: usdc(rand(0.8, 1.2)), capacity: capacityLimit(sc, unitsLocked, rand) };
       const d = await brain.seller(profile, { lastPrice, demand });
       return {
         sel,
@@ -380,7 +419,9 @@ async function round() {
         source: d.source,
         salt: crypto.randomUUID(),
         // The last seller sometimes skips the reveal, to show the bond forfeit (always with SKIP_REVEAL=1).
-        reveals: i < s.sellers.length - 1 || s.sellers.length === 1 || (process.env.SKIP_REVEAL !== '1' && Math.random() < 0.5),
+        // Only the test agent (the last seller) ever skips, and only as SKIP_REVEAL says.
+        testAgent: s.sellers.length > 1 && i === s.sellers.length - 1 && skip !== 'never',
+        reveals: !(s.sellers.length > 1 && i === s.sellers.length - 1) || skip === 'never' || (skip === 'random' && Math.random() < 0.5),
       };
     }),
   );
@@ -401,7 +442,7 @@ async function round() {
   await Promise.all(
     bids.map(async (b) => {
       if (!b.reveals) {
-        console.log(`  ${short(b.sel.id)} does not reveal (bond will be forfeited)`);
+        console.log(`  ${short(b.sel.id)} (test agent) does not reveal, on purpose: its bond will be forfeited to the buyers`);
         return;
       }
       const res = await account(b.sel.id, b.sel.key).callFunctionRaw({
@@ -446,7 +487,9 @@ async function round() {
 
   // Publish the agents' reasoning for the live page. Written only now: before the reveal,
   // a seller's reasoning would leak its sealed price.
-  for (const b of bids) notes.sellers[b.sel.id] = { reasoning: b.reasoning, source: b.source };
+  for (const b of bids) {
+    notes.sellers[b.sel.id] = { reasoning: b.reasoning, source: b.source, revealed: b.reveals, ...(b.testAgent ? { testAgent: true } : {}) };
+  }
   const file = saveNotes(s.market.id, roundId, notes);
   console.log(`\nAgent reasoning saved to ${file}. Commit and push it to show it on the live page.`);
   console.log(`See it: https://hivebuy-six.vercel.app/?contract=${s.market.id} (or npm run dev, then http://localhost:5173/?contract=${s.market.id})`);
@@ -454,8 +497,11 @@ async function round() {
 
 interface RoundNotes {
   brain: string;
+  scenario?: Scenario;
+  skipReveal?: SkipMode;
   buyers: Record<string, { reasoning: string; source: string }>;
-  sellers: Record<string, { reasoning: string; source: string }>;
+  /** testAgent: the seller the script may make skip its reveal (labelled on the live page). */
+  sellers: Record<string, { reasoning: string; source: string; testAgent?: boolean; revealed?: boolean }>;
 }
 
 /** apps/web/public/agent-notes/<contract>.json, one entry per round. Served by the live page. */

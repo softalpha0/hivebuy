@@ -21,10 +21,10 @@ describe('simulation report (README numbers)', () => {
     expect(read('docs/RESULTS.md')).toBe(report.markdown);
   });
 
-  it('the landing page shows the same two numbers', () => {
-    const [more, below] = report.headline.match(/\d+%/g)!;
+  it('the landing page shows the same simulated numbers', () => {
     const html = read('apps/web/index.html');
-    expect(html).toContain(`<dt>+${more}</dt>`);
-    expect(html).toContain(`<dt>${below}</dt>`);
+    for (const [key, value] of Object.entries(report.cells)) {
+      expect(html, key).toContain(`data-sim="${key}">${value}<`);
+    }
   });
 });

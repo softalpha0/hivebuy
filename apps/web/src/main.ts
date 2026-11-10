@@ -741,6 +741,31 @@ document.addEventListener('click', (e) => {
   if (go) void gotoRound(go.getAttribute('data-goto')!);
 });
 
+// ---------- Simulated vs live: the live column, computed from the contract ----------
+
+const LIVE_CONTRACT = 'market.hivebuy.testnet';
+
+async function renderEvidence() {
+  const set = (key: string, text: string) => {
+    const cell = document.querySelector(`[data-live="${key}"]`);
+    if (cell) cell.textContent = text;
+  };
+  try {
+    const live = (await loadTestnetRounds(LIVE_CONTRACT)).filter((r) => r.result && (r.phase === 'cleared' || r.phase === 'failed'));
+    const h = headline(live.map((r) => ({ ...roundInputs(r), price: r.result!.price, demand: r.result!.demand })));
+    set('more', `${h.moreUnits >= 0 ? '+' : ''}${Math.round(h.moreUnits * 100)}%`);
+    set('below', `${Math.round(h.belowMax * 100)}%`);
+    set('rounds', String(live.filter((r) => r.phase === 'cleared').length));
+    set('multi', String(live.filter((r) => r.result!.fills.length >= 2).length));
+    set('forfeits', String(live.reduce((a, r) => a + r.sellers.filter((x) => !x.revealed).length, 0)));
+    $('ev-asof').textContent = `at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  } catch {
+    for (const key of ['more', 'below', 'rounds', 'multi', 'forfeits']) set(key, '—');
+    $('ev-asof').textContent = '(testnet RPC unreachable right now)';
+  }
+}
+void renderEvidence();
+
 const params = new URLSearchParams(location.search);
 if (params.get('contract')) {
   setTab(true);

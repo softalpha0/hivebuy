@@ -71,12 +71,29 @@
             <code class="lp-code">seller-2 wins at 1.28 · 23.04 USDC paid</code>
           </li>
         </ol>
-        <!-- big-number proof row (Land-book) -->
-        <dl class="proof">
-          <div><dt>+17%</dt><dd>more compute bought than a one-winner market, over 200 simulated rounds</dd></div>
-          <div><dt>40%</dt><dd>below the most buyers offered: what sharing a round saves them</dd></div>
-          <div><dt>70</dt><dd>automated tests in Rust and TypeScript, both checked against the same test cases</dd></div>
-        </dl>
+        <!-- Simulated vs live: every number has its source; the live column is computed from the contract in your browser -->
+        <div class="evidence card" id="evidence">
+          <div class="ev-head">
+            <h3>Simulated vs live on NEAR testnet</h3>
+            <p>
+              <b>Simulated:</b> 200 scripted rounds, seeds 42, 7, 123, 2026 (<a href="https://github.com/softalpha0/hivebuy/blob/main/docs/RESULTS.md" target="_blank" rel="noreferrer">reproduce</a>).
+              <b>Live:</b> every cleared round on <code>market.hivebuy.testnet</code>, read from the contract by your browser <span id="ev-asof">just now</span>.
+            </p>
+          </div>
+          <div class="table-wrap">
+            <table class="ev">
+              <thead><tr><th></th><th class="num">Simulated</th><th class="num">Live on testnet</th></tr></thead>
+              <tbody>
+                <tr><td>More compute bought than a one-winner market</td><td class="num big" data-sim="more">+17%</td><td class="num big" data-live="more">…</td></tr>
+                <tr><td>Paid below the most buyers offered</td><td class="num big" data-sim="below">40%</td><td class="num big" data-live="below">…</td></tr>
+                <tr><td>Rounds cleared</td><td class="num" data-sim="rounds">200</td><td class="num" data-live="rounds">…</td></tr>
+                <tr><td>Rounds where 2+ providers shared the order</td><td class="num" data-sim="multi">200</td><td class="num" data-live="multi">…</td></tr>
+                <tr><td>Bonds forfeited to buyers</td><td class="num" data-sim="forfeits">108</td><td class="num" data-live="forfeits">…</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="ev-foot">Why the live numbers differ: live rounds are small (5 to 10 AI buyers, 3 providers) and the AI agents choose their own prices and capacities. 70 automated tests in Rust and TypeScript check the rule itself.</p>
+        </div>
       </section>
 
       <!-- 02 Why NEAR: hairline feature grid (21st.dev features) -->

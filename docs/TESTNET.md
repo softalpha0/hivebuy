@@ -115,7 +115,11 @@ $env:BUYERS = "10"; npm run testnet -- setup; Remove-Item Env:BUYERS
 
 The next `npm run testnet -- round` uses all ten buyers.
 
-To show the bond going to the buyers in a demo, force the last seller to stay quiet: `$env:SKIP_REVEAL = "1"; npm run testnet -- round; Remove-Item Env:SKIP_REVEAL`. After the round, the script lists the NEAR each buyer received, and the live page shows it in the buyers table.
+**Round options.**
+
+- `npm run testnet -- round --scenario multi`: each provider may offer only 40-70% of the units buyers locked, so no single provider can serve everyone and several share the round.
+- `SKIP_REVEAL` decides whether the test agent (the last seller) skips its reveal to show the bond forfeit: `never`, `random` (default, half the time) or `always`. In PowerShell: `$env:SKIP_REVEAL = "never"; npm run testnet -- round --scenario multi; Remove-Item Env:SKIP_REVEAL`. Every other seller always reveals.
+- After rounds, `npm run live:report` reads every round from the contract and rewrites `docs/LIVE.md` and the dated live line in the README.
 
 ## 8. Let the agents think with NEAR AI (optional)
 
