@@ -119,6 +119,7 @@ The next `npm run testnet -- round` uses all ten buyers.
 
 - `npm run testnet -- round --scenario multi`: each provider may offer only 40-70% of the units buyers locked, so no single provider can serve everyone and several share the round.
 - `SKIP_REVEAL` decides whether the test agent (the last seller) skips its reveal to show the bond forfeit: `never`, `random` (default, half the time) or `always`. In PowerShell: `$env:SKIP_REVEAL = "never"; npm run testnet -- round --scenario multi; Remove-Item Env:SKIP_REVEAL`. Every other seller always reveals.
+- `--info minimal`: providers are told only the aggregate demand curve, not the previous clearing price or single orders (see [MECHANISM.md](MECHANISM.md)). Default `full`.
 - After rounds, `npm run live:report` reads every round from the contract and rewrites `docs/LIVE.md` and the dated live line in the README.
 
 ## 8. Let the agents think with NEAR AI (optional)

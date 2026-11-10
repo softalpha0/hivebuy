@@ -17,6 +17,8 @@
  * Round options:
  *   --scenario multi   each provider can offer only 40-70% of the units buyers locked, so no single provider can
  *                      fill the round and several must share it (default: each offers 15-45 units).
+ *   --info minimal     providers see only the aggregate demand curve: no previous clearing price, no single
+ *                      orders (docs/MECHANISM.md). Default full.
  *   SKIP_REVEAL=never|random|always   whether the test agent (the last seller) skips its reveal to show the bond
  *                      forfeit. Default random (half the time). Every other seller always reveals.
  */
@@ -26,7 +28,7 @@ import { join, resolve } from 'node:path';
 import { Account, JsonRpcProvider, KeyPair, KeyPairSigner, actions, getTransactionLastResult, nearToYocto, teraToGas } from 'near-api-js';
 import type { KeyPairString } from 'near-api-js';
 import { commitment, formatNear, formatUsdc } from '@hivebuy/core';
-import { type Brain, NearAiClient, nearAiBrain, scripted } from '@hivebuy/agents';
+import { type Brain, type InfoPolicy, NearAiClient, nearAiBrain, scripted } from '@hivebuy/agents';
 
 // ---------- config ----------
 
@@ -282,6 +284,12 @@ const STALE_MS = 60 * 60 * 1000;
 type Scenario = 'default' | 'multi';
 type SkipMode = 'never' | 'random' | 'always';
 
+function infoPolicy(): InfoPolicy {
+  const v = flag('info') ?? 'full';
+  if (v !== 'full' && v !== 'minimal') throw new Error(`--info must be full or minimal, got "${v}"`);
+  return v;
+}
+
 function flag(name: string): string | undefined {
   const i = process.argv.indexOf(`--${name}`);
   return i >= 0 ? process.argv[i + 1] : undefined;
@@ -328,6 +336,7 @@ async function round() {
   const s = loadState();
   const sc = scenario();
   const skip = skipMode();
+  const info = infoPolicy();
   await clearStaleRounds(s);
   const phase = Number(process.env.PHASE_SECS ?? 30);
   const brain = await pickBrain();
@@ -342,7 +351,7 @@ async function round() {
 
   // Buyers decide before the round opens (they only need the last price), so slow model
   // answers never eat into the join phase.
-  const notes: RoundNotes = { brain: brain.name, scenario: sc, skipReveal: skip, buyers: {}, sellers: {} };
+  const notes: RoundNotes = { brain: brain.name, scenario: sc, skipReveal: skip, info, buyers: {}, sellers: {} };
   console.log(`Agents deciding (${brain.name})…`);
   const orders = (
     await Promise.all(
@@ -362,7 +371,7 @@ async function round() {
     )
   ).filter((x) => x !== null);
 
-  console.log(`Opening a round on ${s.market.id} (${phase}s per phase, agents: ${brain.name}, scenario: ${sc}, test agent skips reveal: ${skip})…`);
+  console.log(`Opening a round on ${s.market.id} (${phase}s per phase, agents: ${brain.name}, scenario: ${sc}, provider info: ${info}, test agent skips reveal: ${skip})…`);
   const roundId = await p.callFunction<number>({
     contractId: s.market.id,
     methodName: 'open_round',
@@ -410,7 +419,7 @@ async function round() {
     s.sellers.map(async (sel, i) => {
       const unitsLocked = demand.reduce((a, x) => a + x.qty, 0);
       const profile = { id: sel.id, cost: usdc(rand(0.8, 1.2)), capacity: capacityLimit(sc, unitsLocked, rand) };
-      const d = await brain.seller(profile, { lastPrice, demand });
+      const d = await brain.seller(profile, { lastPrice, demand, info });
       return {
         sel,
         price: d.price,
@@ -499,6 +508,7 @@ interface RoundNotes {
   brain: string;
   scenario?: Scenario;
   skipReveal?: SkipMode;
+  info?: InfoPolicy;
   buyers: Record<string, { reasoning: string; source: string }>;
   /** testAgent: the seller the script may make skip its reveal (labelled on the live page). */
   sellers: Record<string, { reasoning: string; source: string; testAgent?: boolean; revealed?: boolean }>;

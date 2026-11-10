@@ -38,9 +38,30 @@ export interface MarketContext {
   lastPrice: Amount | null;
 }
 
+/**
+ * What a provider is told before it bids (docs/MECHANISM.md).
+ * - `full`: every public join and the previous clearing price.
+ * - `minimal`: only the aggregate demand curve (units wanted at or above each price). No previous
+ *   clearing price and no individual orders, so providers have less to coordinate on between rounds.
+ */
+export type InfoPolicy = 'full' | 'minimal';
+
 export interface SellerContext extends MarketContext {
   /** Public joins of this round: what each buyer asked for. */
   demand: { qty: number; maxPrice: Amount }[];
+  /** Default `full`. */
+  info?: InfoPolicy;
+}
+
+/** "≥1.89: 4 units; ≥1.80: 10 units; …": units wanted at or above each distinct max price, highest first. */
+export function demandCurve(demand: readonly { qty: number; maxPrice: Amount }[]): string {
+  const prices = [...new Set(demand.map((d) => d.maxPrice))].sort((a, b) => (a > b ? -1 : a < b ? 1 : 0));
+  return prices.map((p) => `≥${formatUsdc(p)}: ${demand.reduce((s, d) => (d.maxPrice >= p ? s + d.qty : s), 0)} units`).join('; ') || 'no buyers';
+}
+
+/** The context with what `info` hides removed, so no code path can leak it. */
+function visible(ctx: SellerContext): SellerContext {
+  return ctx.info === 'minimal' ? { ...ctx, lastPrice: null } : ctx;
 }
 
 export interface BuyerDecision {
@@ -98,7 +119,8 @@ export const scripted: Brain = {
     const last = ctx.lastPrice === null ? '' : `; last price ${formatUsdc(ctx.lastPrice)}`;
     return { qty, maxPrice, reasoning: `Bid my value ${formatUsdc(maxPrice)} for ${qty} units${last}`, source: 'scripted' };
   },
-  async seller(p, ctx) {
+  async seller(p, fullCtx) {
+    const ctx = visible(fullCtx);
     // Cost plus 30%, but undercut the last clearing price when that still covers cost.
     let price = cents((p.cost * 130n) / 100n);
     if (ctx.lastPrice !== null && ctx.lastPrice - 10_000n >= p.cost && ctx.lastPrice - 10_000n < price) price = ctx.lastPrice - 10_000n;
@@ -286,9 +308,13 @@ export function nearAiBrain(client: NearAiClient): Brain {
         () => scripted.buyer(p, ctx),
       );
     },
-    seller(p, ctx) {
+    seller(p, fullCtx) {
+      const ctx = visible(fullCtx);
       const total = ctx.demand.reduce((s, d) => s + d.qty, 0);
-      const book = ctx.demand.map((d) => `${d.qty} units up to ${formatUsdc(d.maxPrice)}`).join('; ') || 'no buyers';
+      const book =
+        ctx.info === 'minimal'
+          ? `units wanted at or above each price: ${demandCurve(ctx.demand)}`
+          : ctx.demand.map((d) => `${d.qty} units up to ${formatUsdc(d.maxPrice)}`).join('; ') || 'no buyers';
       const user =
         `You are provider agent ${p.id}. Your cost is ${formatUsdc(p.cost)} USDC per unit and you can serve at most ${p.capacity} units. ` +
         `This round's public demand (${total} units): ${book}. ` +

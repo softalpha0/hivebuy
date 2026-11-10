@@ -539,7 +539,11 @@ function renderDetail() {
   const summaries = [
     `${r.buyers.length} buyer agents locked ${usd(escrow)} USDC for ${units} units`,
     `${r.sellers.length} sealed bids posted, each backed by a NEAR bond`,
-    forfeited ? `${revealed} revealed · ${forfeited} kept quiet; its bond goes to the buyers` : `All ${revealed} bids revealed and matched their hashes`,
+    forfeited
+      ? r.sellers.filter((x) => !x.revealed).every((x) => r.notes?.byAgent[x.id]?.testAgent || x.strategy === 'flaky')
+        ? `${revealed} revealed · the test agent skipped its reveal on purpose; its bond goes to the buyers`
+        : `${revealed} revealed · ${forfeited} kept quiet; its bond goes to the buyers`
+      : `All ${revealed} bids revealed and matched their hashes`,
     res
       ? res.fills.length
         ? `Cleared at ${usd(res.price)}: ${res.fills.map((f) => `${plain(f.id)} sells ${f.units}`).join(', ')} · ${usd(paid)} USDC paid, ${usd(refunded)} refunded`
@@ -610,12 +614,18 @@ function renderDetail() {
       }${bondNote}${verifiedLine}${res.fills.length ? '' : '<li class="skip"><b>No price cleared: every buyer gets the full escrow back.</b></li>'}</ol></section>`
     : '';
 
+  /** The seller the test script may make skip its reveal (testnet notes), or the sim's "flaky" strategy. */
+  const isTestAgent = (id: string) =>
+    !!r.notes?.byAgent[id]?.testAgent || r.sellers.some((x) => x.id === id && x.strategy === 'flaky');
   const thought = (id: string, fallback?: string) => {
     const n = r.notes?.byAgent[id];
     if (!n) return `<span class="muted">${esc(fallback ?? '—')}</span>`;
     const tag = n.source === 'ai' ? '' : ` <span class="pill">${esc(n.source)}</span>`;
-    return `<span class="thought"><span class="spark" aria-hidden="true">✦</span>${esc(n.reasoning)}${tag}</span>`;
+    const skipped = n.testAgent && !r.sellers.find((x) => x.id === id)?.revealed;
+    const lead = skipped ? '<span class="muted">Reveal skipped by the test script. Bid reasoning: </span>' : '';
+    return `<span class="thought"><span class="spark" aria-hidden="true">✦</span><span>${lead}${esc(n.reasoning)}${tag}</span></span>`;
   };
+  const testBadge = '<span class="pill test" title="Test agent: skips its reveal on purpose to demonstrate the bond forfeit">Test agent</span>';
   const whyHead = r.notes ? 'Agent reasoning' : 'Strategy';
 
   const sellers =
@@ -639,7 +649,7 @@ function renderDetail() {
                     ? '<span class="pill info">Revealed</span>'
                     : '<span class="pill bad">Bond forfeited</span>';
             return `<tr class="${fill ? 'win-row' : ''}">
-              <td class="who">${short(s.id)}</td><td class="wide">${stage >= 3 ? thought(s.id, s.strategy) : `<span class="muted">${esc(s.strategy ?? 'hidden until the round clears')}</span>`}</td>
+              <td class="who">${short(s.id)}${isTestAgent(s.id) ? ` ${testBadge}` : ''}</td><td class="wide">${stage >= 3 ? thought(s.id, s.strategy) : `<span class="muted">${esc(s.strategy ?? 'hidden until the round clears')}</span>`}</td>
               <td><code title="${esc(s.commitment)}">${esc(s.commitment.slice(0, 10))}…</code></td>
               <td class="num">${open ? usd(s.revealed!.price) : '<span class="sealed">••••</span>'}</td>
               <td class="num">${open ? s.revealed!.capacity : '<span class="sealed">••</span>'}</td>${

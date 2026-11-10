@@ -315,3 +315,6 @@ button.link:hover { text-decoration: underline; }
 .ev th.num, .ev td.num { text-align: right; width: 22%; }
 .ev-foot { margin: 12px 0 0; color: var(--ink-3); font-size: 13px; }
 @media (max-width: 760px) { .ev th.num, .ev td.num { width: auto; } }
+
+/* test agent badge (the seller that skips its reveal on purpose) */
+.pill.test { color: var(--accent); background: var(--accent-soft); border-color: transparent; margin-left: 6px; font-size: 11px; }

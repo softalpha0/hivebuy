@@ -23,7 +23,7 @@ Built for NEAR Hackathon 2026, **AI Swarms track** (`swarms`).
 
 - **Live demo:** https://hivebuy-six.vercel.app
 - **Live round on NEAR testnet:** https://hivebuy-six.vercel.app/?contract=market.hivebuy.testnet
-- **Market rules:** [RULES.md](RULES.md)
+- **Market rules:** [RULES.md](RULES.md) · **Mechanism notes (design, risks, live data):** [docs/MECHANISM.md](docs/MECHANISM.md)
 - **Demo video:** https://youtu.be/fybUcsyByqI
 
 ![Hivebuy live page: a cleared round with sealed and revealed bids](docs/screenshots/simulation.png)
@@ -70,7 +70,7 @@ Requires Node.js 20 or newer and Rust (for the contract tests; see [docs/TESTNET
 
 ```powershell
 npm ci
-npm run verify   # 43 TypeScript tests, typecheck, 27 contract tests, then reprints the README's simulated numbers
+npm run verify   # 46 TypeScript tests, typecheck, 27 contract tests, then reprints the README's simulated numbers
 ```
 
 `npm run verify` ends by printing the headline above and regenerating [docs/RESULTS.md](docs/RESULTS.md); a test fails if the README, the landing page or that file disagree with the simulation. CI runs the same command on every push.

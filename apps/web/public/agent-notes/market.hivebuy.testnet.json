@@ -13,32 +13,39 @@
           "source": "ai"
         },
         "buyer-1.hivebuy.testnet": {
-          "reasoning": "qty=6 with max_price=1.29 uses exactly my budget (6 × 1.29 = 7.74 USDC escrow). Since each unit is worth 1.29 to me, I want to be included a",
+          "reasoning": "qty=6 with max_price=1.29 uses exactly my budget (6 \u00d7 1.29 = 7.74 USDC escrow). Since each unit is worth 1.29 to me, I want to be included a",
           "source": "ai"
         },
         "buyer-4.hivebuy.testnet": {
-          "reasoning": "I need all 7 units and value each at 1.40, so bidding max_price = 1.40 uses my full budget (7 × 1.40 = 9.80) without ever risking paying abo",
+          "reasoning": "I need all 7 units and value each at 1.40, so bidding max_price = 1.40 uses my full budget (7 \u00d7 1.40 = 9.80) without ever risking paying abo",
           "source": "ai"
         },
         "buyer-5.hivebuy.testnet": {
-          "reasoning": "Budget 11.76 = 8 × 1.47, so qty 8 at max_price 1.47 exactly fits. Escrow locks 11.76; if the clearing price is lower (last round: 1.28), I p",
+          "reasoning": "Budget 11.76 = 8 \u00d7 1.47, so qty 8 at max_price 1.47 exactly fits. Escrow locks 11.76; if the clearing price is lower (last round: 1.28), I p",
           "source": "ai"
         }
       },
       "sellers": {
         "seller-1.hivebuy.testnet": {
           "reasoning": "Demand is highly price-inelastic: 23 of 31 units accept up to 1.47+, and only the 6 units capped at 1.29 drop out above that. Pricing at 1.4",
-          "source": "ai"
+          "source": "ai",
+          "revealed": true
         },
         "seller-2.hivebuy.testnet": {
           "reasoning": "At 1.29 all 31 demanded units clear (every buyer max_price >= 1.29), capacity 31 exactly covers demand so I win the round at 1.29, earning (",
-          "source": "ai"
+          "source": "ai",
+          "revealed": true
         },
         "seller-3.hivebuy.testnet": {
-          "reasoning": "Demand at each candidate price: ≥1.29 → 31u, ≥1.40 → 23u, ≥1.47 → 10u, ≥1.65 → 2u. At 1.46 I capture the 23-unit tranche (profit ≈ 10.58) if",
-          "source": "ai"
+          "reasoning": "Demand at each candidate price: \u22651.29 \u2192 31u, \u22651.40 \u2192 23u, \u22651.47 \u2192 10u, \u22651.65 \u2192 2u. At 1.46 I capture the 23-unit tranche (profit \u2248 10.58) if",
+          "source": "ai",
+          "testAgent": true,
+          "revealed": false
         }
-      }
+      },
+      "scenario": "default",
+      "skipReveal": "random",
+      "info": "full"
     },
     "3": {
       "brain": "nearai:z-ai/glm-5.3-flash",
@@ -60,24 +67,31 @@
           "source": "ai"
         },
         "buyer-1.hivebuy.testnet": {
-          "reasoning": "Budget allows exactly 5 × 1.76, and bidding full valuation maximizes inclusion chances while paying only the lower prior",
+          "reasoning": "Budget allows exactly 5 \u00d7 1.76, and bidding full valuation maximizes inclusion chances while paying only the lower prior",
           "source": "ai"
         }
       },
       "sellers": {
         "seller-1.hivebuy.testnet": {
           "reasoning": "Bidding just below the 1.29 prior clear maximizes margin while likely winning all 25 demand units against costlier rival",
-          "source": "ai"
+          "source": "ai",
+          "revealed": true
         },
         "seller-2.hivebuy.testnet": {
           "reasoning": "Bidding just under last round's 1.29 clears captures high-value buyers while staying cheap enough to likely win against",
-          "source": "ai"
+          "source": "ai",
+          "revealed": true
         },
         "seller-3.hivebuy.testnet": {
           "reasoning": "Pricing just below last round's 1.29 clears all 25 demand units at a strong margin over my 0.97 cost.",
-          "source": "ai"
+          "source": "ai",
+          "testAgent": true,
+          "revealed": false
         }
-      }
+      },
+      "scenario": "default",
+      "skipReveal": "random",
+      "info": "full"
     },
     "4": {
       "brain": "nearai:z-ai/glm-5.3-flash",
@@ -126,17 +140,24 @@
       "sellers": {
         "seller-1.hivebuy.testnet": {
           "reasoning": "Bidding near top demand clears high while staying under buyers' 1.72 caps.",
-          "source": "ai"
+          "source": "ai",
+          "revealed": true
         },
         "seller-2.hivebuy.testnet": {
-          "reasoning": "Previous round cleared at 1.28, so bidding just above cost near that level balances winning volume against profit…",
-          "source": "ai"
+          "reasoning": "Previous round cleared at 1.28, so bidding just above cost near that level balances winning volume against profit\u2026",
+          "source": "ai",
+          "revealed": true
         },
         "seller-3.hivebuy.testnet": {
           "reasoning": "Bidding 1.54 undercuts pricier rivals while staying above cost, capturing high-demand units at strong margin.",
-          "source": "ai"
+          "source": "ai",
+          "testAgent": true,
+          "revealed": false
         }
-      }
+      },
+      "scenario": "default",
+      "skipReveal": "random",
+      "info": "full"
     },
     "5": {
       "brain": "nearai:z-ai/glm-5.3-flash",
@@ -185,17 +206,24 @@
       "sellers": {
         "seller-1.hivebuy.testnet": {
           "reasoning": "Pricing just under 1.70 keeps me in all demand tiers above 1.69, maximizing profit.",
-          "source": "ai"
+          "source": "ai",
+          "revealed": true
         },
         "seller-2.hivebuy.testnet": {
           "reasoning": "Undercutting rivals near cost wins cheap-first allocation while clearing price stays well above 0.98.",
-          "source": "ai"
+          "source": "ai",
+          "revealed": true
         },
         "seller-3.hivebuy.testnet": {
-          "reasoning": "Bidding just under last round's 1.60 clearing price keeps me competitive while capturing strong margin over my 1.06…",
-          "source": "ai"
+          "reasoning": "Bidding just under last round's 1.60 clearing price keeps me competitive while capturing strong margin over my 1.06\u2026",
+          "source": "ai",
+          "testAgent": true,
+          "revealed": false
         }
-      }
+      },
+      "scenario": "default",
+      "skipReveal": "random",
+      "info": "full"
     },
     "6": {
       "brain": "nearai:z-ai/glm-5.3-flash",
@@ -244,17 +272,24 @@
       "sellers": {
         "seller-1.hivebuy.testnet": {
           "reasoning": "Pricing at 1.33 clears against high-value buyers while staying above cost.",
-          "source": "ai"
+          "source": "ai",
+          "revealed": true
         },
         "seller-2.hivebuy.testnet": {
           "reasoning": "Bidding 1.33 captures the high-value 1.33-1.65 demand tiers at a strong margin above my 1.08 cost.",
-          "source": "ai"
+          "source": "ai",
+          "revealed": true
         },
         "seller-3.hivebuy.testnet": {
           "reasoning": "Pricing at 1.33 clears against 22 units of demand while staying below the next buyer tier.",
-          "source": "ai"
+          "source": "ai",
+          "testAgent": true,
+          "revealed": false
         }
-      }
+      },
+      "scenario": "default",
+      "skipReveal": "random",
+      "info": "full"
     },
     "7": {
       "brain": "nearai:z-ai/glm-5.3-flash",
@@ -318,7 +353,8 @@
           "source": "ai",
           "revealed": true
         }
-      }
+      },
+      "info": "full"
     },
     "8": {
       "brain": "nearai:z-ai/glm-5.3-flash",
@@ -382,7 +418,8 @@
           "source": "ai",
           "revealed": true
         }
-      }
+      },
+      "info": "full"
     },
     "9": {
       "brain": "nearai:z-ai/glm-5.3-flash",
@@ -446,7 +483,8 @@
           "source": "ai",
           "revealed": true
         }
-      }
+      },
+      "info": "full"
     }
   }
 }

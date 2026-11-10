@@ -5,6 +5,7 @@ import {
   type SellerProfile,
   checkBuyer,
   checkSeller,
+  demandCurve,
   nearAiBrain,
   scripted,
   shortText,
@@ -55,6 +56,43 @@ describe('scripted brain', () => {
     const s = await scripted.seller(seller, { lastPrice: 1_100_000n, demand: [] });
     expect(checkSeller(seller, s.price, s.capacity)).toBeNull();
     expect(s.price).toBe(1_090_000n); // undercuts the last price by a cent
+  });
+});
+
+describe('information policy (docs/MECHANISM.md)', () => {
+  const demand = [
+    { qty: 4, maxPrice: 1_890_000n },
+    { qty: 6, maxPrice: 1_500_000n },
+    { qty: 2, maxPrice: 1_500_000n },
+  ];
+  const promptOf = (requests: { body: Record<string, unknown> }[]) =>
+    String((requests[0]!.body.messages as { content: string }[]).at(-1)!.content);
+  const bid = { price: '1.30', capacity: 20, reasoning: 'Fine.' };
+
+  it('full: providers see every join and the previous clearing price', async () => {
+    const { client, requests } = fakeApi([bid]);
+    await nearAiBrain(client).seller(seller, { lastPrice: 1_330_000n, demand });
+    expect(promptOf(requests)).toContain('The previous round cleared at 1.33');
+    expect(promptOf(requests)).toContain('6 units up to 1.50');
+  });
+
+  it('minimal: providers see only the demand curve, never the previous price or single orders', async () => {
+    const { client, requests } = fakeApi([bid]);
+    await nearAiBrain(client).seller(seller, { lastPrice: 1_330_000n, demand, info: 'minimal' });
+    const prompt = promptOf(requests);
+    expect(prompt).not.toContain('1.33');
+    expect(prompt).not.toContain('previous round');
+    expect(prompt).not.toContain('6 units up to');
+    expect(prompt).toContain('≥1.89: 4 units; ≥1.50: 12 units');
+  });
+
+  it('minimal also applies to the scripted rule and the fallback', async () => {
+    const last = 1_100_000n; // full info: the scripted seller undercuts it to 1.09
+    const full = await scripted.seller(seller, { lastPrice: last, demand });
+    const minimal = await scripted.seller(seller, { lastPrice: last, demand, info: 'minimal' });
+    expect(full.price).toBe(1_090_000n);
+    expect(minimal.price).toBe(1_170_000n); // cost 0.90 + 30%, no undercut
+    expect(demandCurve([])).toBe('no buyers');
   });
 });
 

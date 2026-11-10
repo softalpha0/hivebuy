@@ -31,7 +31,7 @@ export interface ViewRound {
   /** Seller bond for this round, in yoctoNEAR (testnet rounds). */
   bond?: bigint;
   /** Published agent reasoning (testnet rounds run by scripts/testnet.ts). */
-  notes?: { brain: string; byAgent: Record<string, { reasoning: string; source: string }> };
+  notes?: { brain: string; byAgent: Record<string, { reasoning: string; source: string; testAgent?: boolean }> };
 }
 
 export function fromSimulation(run: SimRun): ViewRound[] {

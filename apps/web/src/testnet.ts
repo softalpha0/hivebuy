@@ -82,6 +82,7 @@ interface NotesFile {
 interface NoteEntry {
   reasoning: string;
   source: string;
+  testAgent?: boolean;
 }
 
 /** Agent reasoning published with the site (apps/web/public/agent-notes/<contract>.json), if any. */
