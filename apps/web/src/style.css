@@ -322,3 +322,6 @@ button.link:hover { text-decoration: underline; }
 /* delivery receipts */
 td.reply { white-space: normal; color: var(--ink-2); font-size: 13px; min-width: 260px; }
 td a[href*="nearblocks"] { color: var(--accent); }
+
+/* links inside landing copy */
+.lp-head p a, .fcell p a, .ev-foot a { color: var(--accent); }

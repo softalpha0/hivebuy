@@ -10,16 +10,22 @@
 **Live on NEAR testnet:** +34% more compute than a one-winner market, buyers paid 13% below their max, 4 of 12 rounds shared by 2+ providers (12 live testnet rounds on market.hivebuy.testnet, as of 2026-11-10). Every round: [docs/LIVE.md](docs/LIVE.md).
 <!-- live:end -->
 
-What makes it different:
+### Beyond the sample prompt
 
-- **Real AI agents.** Every buyer and provider decides with a model on NEAR AI Cloud (`z-ai/glm-5.3-flash`, private inference in a TEE), and its reasoning is published next to its bid.
-- **Every buyer names its own price.** Buyers lock different quantities at different max prices, so the market sees a real demand curve, not one shared ceiling.
-- **Several providers share a round.** The contract finds one fair price and splits the order across the cheapest providers, so more buyers get served at a lower price than any single provider could offer.
-- **Watch rounds live.** The page follows each testnet round as it runs: joins, sealed bids, reveals and the result, with a countdown.
-- **Verified in your browser.** For every on-chain round, the page re-runs the clearing rule on the revealed bids and checks the price, every fill and every payment against what the contract recorded.
-- **Silent providers pay the buyers.** A provider that commits and never reveals loses its NEAR bond to the round's buyers.
+NEAR's own [AI Swarms example](https://github.com/nearai/near-hackathon-prompt-examples/blob/main/tracks/05-swarms.md) describes a group-buying swarm with sealed bids. Hivebuy starts there and adds:
 
-Built for NEAR Hackathon 2026, **AI Swarms track** (`swarms`).
+| The sample prompt describes | Hivebuy adds |
+|---|---|
+| A coordinator that picks **a winner** | **Several providers fill one order at one uniform price** (RULES.md §4). Live: 4 of 12 testnet rounds were shared by two providers |
+| Buyers pooling demand | **Buyer demand curves**: each buyer locks its own quantity and max price, so the clearing price can be a buyer's own max |
+| Scripted strategies for the simulation | **Real AI agents on NEAR AI Cloud** for live rounds, with each agent's reasoning published next to its bid (the scripted simulation stays, for reproducible numbers) |
+| Sealed bids | **A provider that never reveals forfeits its NEAR bond to the buyers** it kept waiting (RULES.md §6) |
+| Settlement | **Delivery receipts**: each buyer redeems a provider-signed voucher with a real inference call; the receipt is posted on-chain and the buyer confirms it (RULES.md §9). Live: 12 of 12 deliveries confirmed in rounds 11 and 12 |
+| Not specified | **Verified in your browser**: the live page re-runs the clearing rule on every on-chain round and checks each payment against the contract |
+| Not specified | **[Mechanism notes](docs/MECHANISM.md)** with live data: providers anchoring on the last price, measured round by round, and a minimal-information experiment |
+| Not specified | **A live view** that follows each testnet round as it runs |
+
+Built for NEAR Hackathon 2026: **AI Swarms** (`swarms`) and **Agent Economy** (`agents`) tracks.
 
 - **Live demo:** https://hivebuy-six.vercel.app
 - **Live round on NEAR testnet:** https://hivebuy-six.vercel.app/?contract=market.hivebuy.testnet
@@ -95,11 +101,12 @@ Run real rounds on NEAR testnet: [docs/TESTNET.md](docs/TESTNET.md).
 | Coordinator contract (Rust, near-sdk 5): rounds, USDC escrow via `ft_transfer_call`, sealed commit + bond, reveal, clear, withdraw | ✅ unit-tested, deployed and run on testnet |
 | Same clearing rule in TypeScript, checked against shared test vectors with the contract | ✅ |
 | Simulation: 20 buyers, 5 sellers, scripted strategies, seeded and replayable, no LLM calls | ✅ |
-| Live page: rounds, sealed and revealed bids, clearing price chart, who paid what | ✅ simulation and testnet |
+| Live page: rounds, sealed and revealed bids, clearing price chart, who paid what; follows running testnet rounds live; re-checks every on-chain round in the browser | ✅ simulation and testnet |
+| Several providers per round on testnet, with AI agents (`--scenario multi`) | ✅ 4 of 12 live rounds shared ([docs/LIVE.md](docs/LIVE.md)) |
 | Testnet script: creates the coordinator and agent sub-accounts, runs live rounds | ✅ |
 | NEAR Intents settlement, dry run against the real mainnet Verifier | ✅ (`npm run intents:dry-run`) |
 | AI agents on NEAR AI Cloud: buyers bid from their need and budget, providers price from demand and cost; schema-checked with a scripted fallback; reasoning shown on the live page | ✅ (`AGENTS=ai`, 8 unit tests with a mocked API) |
-| Delivery receipts (contract v3): each provider signs a voucher per buyer; the buyer redeems it with one real NEAR AI Cloud call through the providers' endpoint (`api/provider.ts` on Vercel); the receipt hash goes on-chain (`post_delivery`) and the buyer confirms it (`confirm_delivery`) | ✅ unit-tested (contract + endpoint); rounds run with `--delivery` show a Deliveries table with on-chain links. Each voucher is redeemed with one call; metering a buyer's full units is next |
+| Delivery receipts (contract v3): each provider signs a voucher per buyer; the buyer redeems it with one real NEAR AI Cloud call through the providers' endpoint (`api/provider.ts` on Vercel); the receipt hash goes on-chain (`post_delivery`) and the buyer confirms it (`confirm_delivery`) | ✅ live in rounds 11 and 12: 12 of 12 deliveries confirmed on-chain. Each voucher is redeemed with one call; metering a buyer's full units is next |
 
 ## How NEAR is used
 
@@ -130,6 +137,13 @@ Run real rounds on NEAR testnet: [docs/TESTNET.md](docs/TESTNET.md).
 | [apps/web](apps/web) | Live page |
 | [scripts](scripts) | Testnet runner and NEAR Intents dry run |
 | [docs](docs) | Plan, testnet guide, deployment, demo script, submission checklist |
+
+## How this was built
+
+- **Dates:** November 1–14, 2026, during NEAR Hackathon 2026. Repository history: 26 commits from November 2 to November 10 so far.
+- **First commit (Nov 2):** a large initial scaffold (46 files) produced with AI assistance from the plan in [docs/PLAN.md](docs/PLAN.md): the rules, the contract, the TypeScript engine, the simulation and the live page, all with tests. About half of its lines are `package-lock.json`.
+- **Every later commit is incremental:** live testnet rounds, AI agents, several providers per round, browser verification, bonds to buyers, the live view, CI and the reproducible report, the rules mapped to tests, the mechanism notes, delivery receipts.
+- **The contract was upgraded in place four times** on testnet (v1 → v2 several providers → v2.1 bonds to buyers → v3 delivery receipts). Each upgrade reads every stored round back and stops if one changed; the 12 live rounds are all still there.
 
 ## Hackathon disclosure
 
