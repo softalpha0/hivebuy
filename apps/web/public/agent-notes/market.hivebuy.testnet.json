@@ -13,15 +13,15 @@
           "source": "ai"
         },
         "buyer-1.hivebuy.testnet": {
-          "reasoning": "qty=6 with max_price=1.29 uses exactly my budget (6 \u00d7 1.29 = 7.74 USDC escrow). Since each unit is worth 1.29 to me, I want to be included a",
+          "reasoning": "qty=6 with max_price=1.29 uses exactly my budget (6 × 1.29 = 7.74 USDC escrow). Since each unit is worth 1.29 to me, I want to be included a",
           "source": "ai"
         },
         "buyer-4.hivebuy.testnet": {
-          "reasoning": "I need all 7 units and value each at 1.40, so bidding max_price = 1.40 uses my full budget (7 \u00d7 1.40 = 9.80) without ever risking paying abo",
+          "reasoning": "I need all 7 units and value each at 1.40, so bidding max_price = 1.40 uses my full budget (7 × 1.40 = 9.80) without ever risking paying abo",
           "source": "ai"
         },
         "buyer-5.hivebuy.testnet": {
-          "reasoning": "Budget 11.76 = 8 \u00d7 1.47, so qty 8 at max_price 1.47 exactly fits. Escrow locks 11.76; if the clearing price is lower (last round: 1.28), I p",
+          "reasoning": "Budget 11.76 = 8 × 1.47, so qty 8 at max_price 1.47 exactly fits. Escrow locks 11.76; if the clearing price is lower (last round: 1.28), I p",
           "source": "ai"
         }
       },
@@ -37,7 +37,7 @@
           "revealed": true
         },
         "seller-3.hivebuy.testnet": {
-          "reasoning": "Demand at each candidate price: \u22651.29 \u2192 31u, \u22651.40 \u2192 23u, \u22651.47 \u2192 10u, \u22651.65 \u2192 2u. At 1.46 I capture the 23-unit tranche (profit \u2248 10.58) if",
+          "reasoning": "Demand at each candidate price: ≥1.29 → 31u, ≥1.40 → 23u, ≥1.47 → 10u, ≥1.65 → 2u. At 1.46 I capture the 23-unit tranche (profit ≈ 10.58) if",
           "source": "ai",
           "testAgent": true,
           "revealed": false
@@ -67,7 +67,7 @@
           "source": "ai"
         },
         "buyer-1.hivebuy.testnet": {
-          "reasoning": "Budget allows exactly 5 \u00d7 1.76, and bidding full valuation maximizes inclusion chances while paying only the lower prior",
+          "reasoning": "Budget allows exactly 5 × 1.76, and bidding full valuation maximizes inclusion chances while paying only the lower prior",
           "source": "ai"
         }
       },
@@ -144,7 +144,7 @@
           "revealed": true
         },
         "seller-2.hivebuy.testnet": {
-          "reasoning": "Previous round cleared at 1.28, so bidding just above cost near that level balances winning volume against profit\u2026",
+          "reasoning": "Previous round cleared at 1.28, so bidding just above cost near that level balances winning volume against profit…",
           "source": "ai",
           "revealed": true
         },
@@ -215,7 +215,7 @@
           "revealed": true
         },
         "seller-3.hivebuy.testnet": {
-          "reasoning": "Bidding just under last round's 1.60 clearing price keeps me competitive while capturing strong margin over my 1.06\u2026",
+          "reasoning": "Bidding just under last round's 1.60 clearing price keeps me competitive while capturing strong margin over my 1.06…",
           "source": "ai",
           "testAgent": true,
           "revealed": false
@@ -485,6 +485,71 @@
         }
       },
       "info": "full"
+    },
+    "10": {
+      "brain": "nearai:z-ai/glm-5.3-flash",
+      "scenario": "multi",
+      "skipReveal": "never",
+      "info": "minimal",
+      "buyers": {
+        "buyer-3.hivebuy.testnet": {
+          "reasoning": "My unit value is 1.10, so bidding above it risks paying more than the units are worth.",
+          "source": "ai"
+        },
+        "buyer-6.hivebuy.testnet": {
+          "reasoning": "Bid true value 1.85 on all 3 units; escrow matches budget exactly.",
+          "source": "ai"
+        },
+        "buyer-2.hivebuy.testnet": {
+          "reasoning": "Bidding my true value avoids paying above 1.09 per unit.",
+          "source": "ai"
+        },
+        "buyer-1.hivebuy.testnet": {
+          "reasoning": "Bid my true value 1.73 to maximize inclusion while never overpaying.",
+          "source": "ai"
+        },
+        "buyer-5.hivebuy.testnet": {
+          "reasoning": "Bid my true value 1.54 to maximize inclusion while paying only the lower clearing price.",
+          "source": "ai"
+        },
+        "buyer-4.hivebuy.testnet": {
+          "reasoning": "Bid full need at value 1.60, escrow 11.20, included whenever clearing price is profitable.",
+          "source": "ai"
+        },
+        "buyer-8.hivebuy.testnet": {
+          "reasoning": "Previous clearing of 1.52 exceeds my 1.06 value, so I cap at value.",
+          "source": "ai"
+        },
+        "buyer-10.hivebuy.testnet": {
+          "reasoning": "Bid full quantity at true value 1.85 to maximize inclusion while paying only the lower clearing price.",
+          "source": "ai"
+        },
+        "buyer-9.hivebuy.testnet": {
+          "reasoning": "Bid my full per-unit value 1.47 with qty 6 to maximize inclusion within budget.",
+          "source": "ai"
+        },
+        "buyer-7.hivebuy.testnet": {
+          "reasoning": "Cap at my per-unit value so I never overpay, matching my 5.64 budget.",
+          "source": "ai"
+        }
+      },
+      "sellers": {
+        "seller-1.hivebuy.testnet": {
+          "reasoning": "Pricing just under 1.85 clears the top demand tier, yielding about 15.44 USDC profit.",
+          "source": "ai",
+          "revealed": true
+        },
+        "seller-2.hivebuy.testnet": {
+          "reasoning": "Pricing just under 1.54 captures 30 demanded units, ensuring my 27 units clear at strong margin.",
+          "source": "ai",
+          "revealed": true
+        },
+        "seller-3.hivebuy.testnet": {
+          "reasoning": "Pricing just under 1.54 captures the 30-unit demand tier while staying cheap enough to win inclusion and earn margin…",
+          "source": "ai",
+          "revealed": true
+        }
+      }
     }
   }
 }

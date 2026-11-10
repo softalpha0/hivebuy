@@ -8,7 +8,7 @@ Every included buyer pays the same price per unit, and every provider that sells
 
 - **Fair and easy to check.** Nobody pays more than their neighbour for the same unit. Anyone can recompute the result from the revealed bids; the live page does it in your browser for every round ("Verified in your browser").
 - **Providers can bid close to cost.** A provider that sells below the clearing price earns the clearing price, not its own ask. So asking low never costs a sale it would otherwise make at a good price.
-- **Several providers can share an order.** The price is the lowest candidate at which the cheapest providers can together serve everyone still willing to pay. Across 200 simulated rounds this buys 17% more compute than a market where one provider must serve everyone ([RESULTS.md](RESULTS.md)). In 9 live rounds the advantage was +19% ([LIVE.md](LIVE.md)).
+- **Several providers can share an order.** The price is the lowest candidate at which the cheapest providers can together serve everyone still willing to pay. Across 200 simulated rounds this buys 17% more compute than a market where one provider must serve everyone ([RESULTS.md](RESULTS.md)). In the 10 live AI rounds as of 2026-11-10 it was +27%, with 3 rounds shared by two providers ([LIVE.md](LIVE.md), regenerated from the contract by `npm run live:report`).
 
 ## 2. Why sealed bids with bonds
 
@@ -22,7 +22,7 @@ Every included buyer pays the same price per unit, and every provider that sells
 
 Providers see the previous clearing price (it is public on-chain), so in repeated rounds they can anchor on it instead of on their costs, and drift towards one shared price without ever talking to each other.
 
-**Observed live.** In 7 of the 8 rounds that had a previous price, at least one AI provider asked within 0.01 of the previous clearing price or of another provider ([LIVE.md](LIVE.md), "Convergence" column):
+**Observed live.** In 7 of the 8 rounds that had a previous price and showed it to providers (rounds 2 to 9), at least one AI provider asked within 0.01 of the previous clearing price or of another provider ([LIVE.md](LIVE.md), "Convergence" column):
 
 - seller-2 asked within 0.01 of the previous clearing price in rounds 2, 3, 4, 7, 8 and 9.
 - Two providers asked exactly the same price in round 3 (1.28 and 1.28), round 6 (1.33 and 1.33) and round 9 (1.52 and 1.52). The tie rule (earlier commit fills first) decided each one.
@@ -73,7 +73,12 @@ Live AI rounds on `market.hivebuy.testnet` as of 2026-11-10. Full rows, includin
 | 7 | AI, multi | 1.33 | 1.44 | seller-2 + seller-1 | seller-2 ≈ previous price |
 | 8 | AI, multi | 1.44 | 1.43 | seller-3 | seller-2 ≈ previous price |
 | 9 | AI, multi | 1.43 | 1.52 | seller-2 + seller-3 | tie at 1.52; seller-2 ≈ previous price |
+| 10 | AI, multi, **minimal info** | 1.52 (not shown to providers) | 1.53 | seller-2 + seller-3 | tie at 1.53, just under buyer-5's max of 1.54 |
 
-In rounds 2 to 6 the test agent (seller-3) skipped its reveal on purpose to show the bond forfeit; rounds 7 to 9 ran with `SKIP_REVEAL=never`, so every provider revealed.
+In rounds 2 to 6 the test agent (seller-3) skipped its reveal on purpose to show the bond forfeit; rounds 7 to 10 ran with `SKIP_REVEAL=never`, so every provider revealed.
 
-**Next measurement:** one round with `--info minimal`, to see whether providers still cluster near the previous price when they are not told it.
+### The minimal-information round (round 10)
+
+With `--info minimal`, providers saw only the demand curve, not the previous clearing price (1.52). Their reasoning no longer mentions any previous price. But two of them still landed on the same ask: seller-2 and seller-3 both bid **1.53**, and both explain it as "just under 1.54", which is a step in the demand curve (buyer-5's max). The tie went to seller-2, which committed first.
+
+So in this round, hiding the previous price removed anchoring on it, and the providers converged on a different focal point instead: the price just below a step in the demand curve. The 1.53 is within 0.01 of the hidden previous price only by coincidence (LIVE.md's automatic "Convergence" column flags it anyway). One round is not evidence either way. It does suggest that information policy alone moves where providers coordinate rather than stopping it. That is why the "next" mitigations above change the market itself (more providers, open entry, a random reserve price) rather than only what providers are told.
